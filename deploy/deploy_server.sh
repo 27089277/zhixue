@@ -1,6 +1,5 @@
 #!/bin/bash
-# 智学云教 一键部署（在服务器以 root 运行）：拉 GitHub + 构建前后端 + 起 MySQL/服务 + nginx
-# 用法: curl -fsSL https://raw.githubusercontent.com/27089277/zhixue/main/deploy/deploy_server.sh | sudo bash
+# 智学云教 一键部署（服务器 root 运行）：拉 GitHub + 构建前后端 + MySQL + nginx，精简为 1管理员/1老师/1学生
 set -e
 export DEBIAN_FRONTEND=noninteractive
 LOG(){ echo -e "\n==== $* ===="; }
@@ -12,22 +11,14 @@ systemctl enable --now docker
 
 LOG "node 20"
 NEED_NODE=1
-if command -v node >/dev/null 2>&1; then
-  [ "$(node -v | sed 's/v//;s/\..*//')" -ge 20 ] && NEED_NODE=0
-fi
-if [ "$NEED_NODE" = 1 ]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y -q nodejs
-fi
+if command -v node >/dev/null 2>&1; then [ "$(node -v|sed 's/v//;s/\..*//')" -ge 20 ] && NEED_NODE=0; fi
+[ "$NEED_NODE" = 1 ] && { curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y -q nodejs; }
 node -v; java -version 2>&1 | head -1
 
 LOG "clone/update repo"
 mkdir -p /opt/zhixue
-if [ -d /opt/zhixue/src/.git ]; then
-  cd /opt/zhixue/src && git fetch --all -q && git reset --hard origin/main
-else
-  git clone -q https://github.com/27089277/zhixue.git /opt/zhixue/src
-fi
+if [ -d /opt/zhixue/src/.git ]; then cd /opt/zhixue/src && git fetch --all -q && git reset --hard origin/main
+else git clone -q https://github.com/27089277/zhixue.git /opt/zhixue/src; fi
 
 LOG "build frontend"
 cd /opt/zhixue/src/edu-mvp
@@ -40,19 +31,30 @@ cd /opt/zhixue/src/server
 mvn -q -DskipTests package
 cp target/zhixue-server-1.0.0.jar /opt/zhixue/app.jar
 
-LOG "mysql (docker)"
+LOG "mysql (docker mirror -> native fallback)"
+mkdir -p /etc/docker
+cat > /etc/docker/daemon.json <<'J'
+{"registry-mirrors":["https://mirror.ccs.tencentyun.com","https://docker.m.daocloud.io","https://hub-mirror.c.163.com"]}
+J
+systemctl restart docker || true
+sleep 3
 cp /opt/zhixue/src/docker-compose.yml /opt/zhixue/docker-compose.yml
-cd /opt/zhixue && docker compose up -d
-for i in $(seq 1 60); do
-  cid=$(docker ps -qf name=mysql)
-  [ -n "$cid" ] && docker exec "$cid" mysqladmin ping -uzhixue -pzhixue --silent 2>/dev/null && { echo "mysql UP"; break; }
-  sleep 3
-done
+cd /opt/zhixue
+DB_MODE=docker
+if ! timeout 200 docker compose up -d; then echo "!! docker pull failed -> native mysql"; DB_MODE=native; fi
+if [ "$DB_MODE" = docker ]; then
+  for i in $(seq 1 60); do cid=$(docker ps -qf name=mysql); [ -n "$cid" ] && docker exec "$cid" mysqladmin ping -uzhixue -pzhixue --silent 2>/dev/null && { echo "mysql(docker) UP"; break; }; sleep 3; done
+else
+  docker compose down 2>/dev/null || true
+  apt-get install -y -q mysql-server
+  systemctl enable --now mysql
+  mysql -e "CREATE DATABASE IF NOT EXISTS zhixue CHARACTER SET utf8mb4; CREATE USER IF NOT EXISTS 'zhixue'@'localhost' IDENTIFIED BY 'zhixue'; GRANT ALL PRIVILEGES ON zhixue.* TO 'zhixue'@'localhost'; FLUSH PRIVILEGES;"
+  echo "mysql(native) UP"
+fi
 
 LOG "env + systemd"
 mkdir -p /opt/zhixue/media
-if [ ! -f /opt/zhixue/zhixue.env ]; then
-cat > /opt/zhixue/zhixue.env <<ENV
+[ -f /opt/zhixue/zhixue.env ] || cat > /opt/zhixue/zhixue.env <<ENV
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-v4-pro
@@ -61,13 +63,11 @@ DB_USER=zhixue
 DB_PASSWORD=zhixue
 MEDIA_DIR=/opt/zhixue/media
 ENV
-fi
 chmod 600 /opt/zhixue/zhixue.env
 cat > /etc/systemd/system/zhixue.service <<UNIT
 [Unit]
 Description=Zhixue Spring Boot Backend
 After=network.target docker.service
-Requires=docker.service
 [Service]
 Type=simple
 WorkingDirectory=/opt/zhixue
@@ -107,13 +107,11 @@ nginx -t && systemctl reload nginx
 command -v ufw >/dev/null && { ufw allow 22/tcp || true; ufw allow 80/tcp || true; }
 
 LOG "wait app seed"
-for i in $(seq 1 80); do curl -sf http://127.0.0.1:8080/api/bootstrap >/dev/null 2>&1 && { echo "app UP"; break; }; sleep 3; done
+for i in $(seq 1 90); do curl -sf http://127.0.0.1:8080/api/bootstrap >/dev/null 2>&1 && { echo "app UP"; break; }; sleep 3; done
 
-LOG "trim to 1 admin/1 teacher/1 student, clear other data"
+LOG "trim to 1 admin/1 teacher/1 student"
 set +e
-cid=$(docker ps -qf name=mysql)
-docker exec "$cid" mysql -uroot -proot-change-me zhixue 2>/dev/null <<'SQL'
-DELETE FROM app_users WHERE role='教师' AND phone<>'13800000000';
+SQL="DELETE FROM app_users WHERE role='教师' AND phone<>'13800000000';
 DELETE FROM app_users WHERE role='学生' AND phone<>'13900000000';
 DELETE FROM app_users WHERE role LIKE '%管理%' AND phone<>'13700000000';
 DELETE FROM classes WHERE name<>'初三(1)班';
@@ -121,8 +119,9 @@ SET FOREIGN_KEY_CHECKS=0;
 TRUNCATE questions;TRUNCATE papers;TRUNCATE assignments;TRUNCATE submissions;TRUNCATE videos;TRUNCATE knowledge;TRUNCATE risks;
 SET FOREIGN_KEY_CHECKS=1;
 UPDATE classes SET count=1 WHERE name='初三(1)班';
-UPDATE app_users SET class_name='初三(1)班' WHERE phone='13900000000';
-SQL
+UPDATE app_users SET class_name='初三(1)班' WHERE phone='13900000000';"
+if [ "$DB_MODE" = docker ]; then echo "$SQL" | docker exec -i "$(docker ps -qf name=mysql)" mysql -uroot -proot-change-me zhixue
+else echo "$SQL" | mysql zhixue; fi
 set -e
 
 LOG "DEPLOY_DONE"
