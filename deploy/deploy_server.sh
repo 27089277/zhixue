@@ -15,10 +15,13 @@ if command -v node >/dev/null 2>&1; then [ "$(node -v|sed 's/v//;s/\..*//')" -ge
 [ "$NEED_NODE" = 1 ] && { curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y -q nodejs; }
 node -v; java -version 2>&1 | head -1
 
-LOG "clone/update repo"
+LOG "clone repo (fresh shallow, 保证最新)"
+git config --global --add safe.directory '*' || true
 mkdir -p /opt/zhixue
-if [ -d /opt/zhixue/src/.git ]; then cd /opt/zhixue/src && git fetch --all -q && git reset --hard origin/main
-else git clone -q https://github.com/27089277/zhixue.git /opt/zhixue/src; fi
+rm -rf /opt/zhixue/src
+git clone -q --depth 1 https://github.com/27089277/zhixue.git /opt/zhixue/src
+echo "HEAD: $(cd /opt/zhixue/src && git rev-parse --short HEAD)"
+ls -d /opt/zhixue/src/app >/dev/null 2>&1 && echo "app/ present" || { echo "!! app/ missing, abort"; exit 1; }
 
 LOG "build unified web (Expo, 正式 Web = 三端同码, 根路径)"
 cd /opt/zhixue/src/app
