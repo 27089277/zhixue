@@ -6150,3 +6150,63 @@ select { min-height: 36px; border-radius: 8px; }
 @media (max-width: 560px) {
   .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ============================================================
+   Pad / 桌面 自适应补强（手机走 App，暂不针对 <640 优化）
+   目标：pad 竖屏(≈768) / 横屏(≈1024) 下不拥挤、不横向溢出
+   ============================================================ */
+
+/* 主区与面板不被内部网格/表格撑出横向滚动 */
+.main { overflow-x: hidden; }
+.panel, article.panel, .dash-hero, .flow-hero { min-width: 0; }
+/* 面板内的宽表格：超出时面板内横向滚动，而不是撑破页面 */
+.panel .compact-table { min-width: 100%; }
+.panel { max-width: 100%; }
+
+/* KPI 类：中等屏幕先降到 2~3 列 */
+@media (max-width: 1180px) {
+  .metric-row { grid-template-columns: repeat(2, 1fr); }
+  .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+  .analytics-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .flow-kpis, .kpi-grid, .bank-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Pad：主要多列网格统一并成单列，避免拥挤/溢出 */
+@media (max-width: 1024px) {
+  .app-shell { grid-template-columns: 1fr; }              /* 侧栏转顶部（复用 860 的 .sidebar 规则由下方兜底） */
+  .module-grid,
+  .dash-grid,
+  .content-grid,
+  .analytics-2col,
+  .dashboard-grid,
+  .flow-main-grid,
+  .grading-layout,
+  .profile-content-grid,
+  .class-management,
+  .bank-page,
+  .bank-side { grid-template-columns: 1fr !important; }
+  .module-grid .wide,
+  .dashboard-grid .wide,
+  .class-management .wide { grid-column: auto; }
+  .analytics-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* 宽表格：面板内横向滚动（不破坏列对齐，也不撑破页面） */
+  .panel { overflow-x: auto; }
+  .compact-table { min-width: 520px; }
+}
+
+/* 侧栏在 1024 以下也转为顶部横向导航（把原 860 断点的行为上提到 pad） */
+@media (max-width: 1024px) {
+  .sidebar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    padding: 10px 12px;
+  }
+  .side-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  .side-nav button { height: 36px; }
+  .side-nav button span { display: inline; }
+}
