@@ -6218,3 +6218,25 @@ select { min-height: 36px; border-radius: 8px; }
   .bank-kp-layout { flex-direction: column; }
   .kp-tree { width: 100% !important; max-height: 240px; }
 }
+
+/* 学生端：菁优网式 Tab + 错题本 + 专题练习 */
+.student-tabs { display: flex; gap: 8px; padding: 12px 4px 4px; }
+.student-tab { height: 38px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: #5b6b64; font-weight: 600; }
+.student-tab.active { background: var(--green, #0c8a5b); border-color: var(--green, #0c8a5b); color: #fff; }
+.student-view-head { display: flex; align-items: center; gap: 12px; padding: 8px 4px 14px; }
+.student-view-head h2 { font-size: 18px; margin: 0; }
+.mistake-list, .drill-points { display: grid; gap: 12px; }
+.drill-points { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.drill-point-chip { padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: #fff; font-weight: 600; color: #1f2925; text-align: left; }
+.drill-point-chip em { color: var(--green, #0c8a5b); font-style: normal; margin-left: 6px; }
+.mistake-card, .drill-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px; }
+.mistake-meta { display: flex; justify-content: space-between; }
+.kp-tag { background: #e6f5ee; color: var(--green, #0c8a5b); border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+.mistake-ans .wrong { color: #e3342f; } .mistake-ans .right { color: #0c8a5b; }
+.mistake-analysis, .drill-analysis { background: #f6f8f7; border-radius: 8px; padding: 10px; }
+.drill-options { list-style: none; padding: 0; display: grid; gap: 10px; }
+.drill-opt { display: flex; gap: 10px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 12px; cursor: pointer; background: #fff; }
+.drill-opt b { width: 26px; height: 26px; border-radius: 50%; background: #eef2f0; display: grid; place-items: center; }
+.drill-opt.ok { border-color: #0c8a5b; background: #e6f5ee; }
+.drill-opt.bad { border-color: #e3342f; background: #fdecea; }
+.drill-foot { display: flex; justify-content: space-between; margin-top: 6px; }
