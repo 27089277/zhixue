@@ -111,17 +111,17 @@ for i in $(seq 1 90); do curl -sf http://127.0.0.1:8080/api/bootstrap >/dev/null
 
 LOG "trim to 1 admin/1 teacher/1 student"
 set +e
-SQL="DELETE FROM app_users WHERE role='教师' AND phone<>'13800000000';
-DELETE FROM app_users WHERE role='学生' AND phone<>'13900000000';
-DELETE FROM app_users WHERE role LIKE '%管理%' AND phone<>'13700000000';
-DELETE FROM classes WHERE name<>'初三(1)班';
+# 用手机号(ASCII)删多余用户；班级删后重建，避免中文比较。
+# 关键：mysql 客户端必须 --default-character-set=utf8mb4，否则中文字面量按 latin1 解释会乱码。
+SQL="DELETE FROM app_users WHERE phone IS NULL OR phone NOT IN ('13800000000','13900000000','13700000000');
+DELETE FROM classes;
+INSERT INTO classes (name,count,owner,rate) VALUES ('初三(1)班',1,'张老师',0);
+UPDATE app_users SET class_name='初三(1)班' WHERE phone='13900000000';
 SET FOREIGN_KEY_CHECKS=0;
 TRUNCATE questions;TRUNCATE papers;TRUNCATE assignments;TRUNCATE submissions;TRUNCATE videos;TRUNCATE knowledge;TRUNCATE risks;
-SET FOREIGN_KEY_CHECKS=1;
-UPDATE classes SET count=1 WHERE name='初三(1)班';
-UPDATE app_users SET class_name='初三(1)班' WHERE phone='13900000000';"
-if [ "$DB_MODE" = docker ]; then echo "$SQL" | docker exec -i "$(docker ps -qf name=mysql)" mysql -uroot -proot-change-me zhixue
-else echo "$SQL" | mysql zhixue; fi
+SET FOREIGN_KEY_CHECKS=1;"
+if [ "$DB_MODE" = docker ]; then printf '%s' "$SQL" | docker exec -i "$(docker ps -qf name=mysql)" mysql --default-character-set=utf8mb4 -uroot -proot-change-me zhixue
+else printf '%s' "$SQL" | mysql --default-character-set=utf8mb4 zhixue; fi
 set -e
 
 LOG "DEPLOY_DONE"
