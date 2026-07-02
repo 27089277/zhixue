@@ -15,17 +15,24 @@ if command -v node >/dev/null 2>&1; then [ "$(node -v|sed 's/v//;s/\..*//')" -ge
 [ "$NEED_NODE" = 1 ] && { curl -fsSL https://deb.nodesource.com/setup_20.x | bash -; apt-get install -y -q nodejs; }
 node -v; java -version 2>&1 | head -1
 
-LOG "fetch repo (codeload tarball, 国内快; git 兜底)"
+LOG "fetch repo (多镜像 tarball, 国内加速)"
 mkdir -p /opt/zhixue
 rm -rf /opt/zhixue/src && mkdir -p /opt/zhixue/src
-if curl -fsSL --max-time 120 https://codeload.github.com/27089277/zhixue/tar.gz/refs/heads/main -o /tmp/src.tgz && tar xzf /tmp/src.tgz -C /opt/zhixue/src --strip-components=1; then
-  echo "tarball OK"
-else
-  echo "tarball failed -> git clone"
-  rm -rf /opt/zhixue/src
-  git clone -q --depth 1 https://github.com/27089277/zhixue.git /opt/zhixue/src
-fi
-ls -d /opt/zhixue/src/app >/dev/null 2>&1 && echo "app/ present" || { echo "!! app/ missing, abort"; exit 1; }
+URLS=(
+  "https://codeload.github.com/27089277/zhixue/tar.gz/refs/heads/main"
+  "https://ghfast.top/https://github.com/27089277/zhixue/archive/refs/heads/main.tar.gz"
+  "https://ghproxy.net/https://github.com/27089277/zhixue/archive/refs/heads/main.tar.gz"
+)
+OK=0
+for u in "${URLS[@]}"; do
+  echo "try $u"
+  if curl -fsSL --max-time 600 --retry 2 "$u" -o /tmp/src.tgz && tar xzf /tmp/src.tgz -C /opt/zhixue/src --strip-components=1 2>/dev/null && [ -d /opt/zhixue/src/app ]; then
+    echo "tarball OK: $u"; OK=1; break
+  fi
+  rm -rf /opt/zhixue/src && mkdir -p /opt/zhixue/src
+done
+[ "$OK" = 1 ] || { echo "!! all mirrors failed"; exit 1; }
+echo "app/ present"
 
 LOG "build unified web (Expo, 正式 Web = 三端同码, 根路径)"
 cd /opt/zhixue/src/app
