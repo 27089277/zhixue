@@ -1,10 +1,11 @@
+import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import { useStore } from "@/store/useStore";
-import { Card, Screen, SectionTitle, Tag } from "@/components/ui";
+import { Card, Screen, SectionTitle } from "@/components/ui";
 import { colors, font, space } from "@/theme/tokens";
 
-// 题库（融合菁优网知识点体系 + 你的 AI/组卷）—— v1 概览，深度浏览/组卷后续。
 export default function TeacherBank() {
+  const router = useRouter();
   const s = useStore();
   return (
     <Screen>
@@ -20,16 +21,29 @@ export default function TeacherBank() {
         </Card>
       </View>
 
-      <SectionTitle title="组卷方式" />
-      <Card style={{ gap: 4 }}>
-        <Text style={{ fontWeight: "700", color: colors.ink }}>🧩 结构化组卷（菁优网式）</Text>
+      <SectionTitle title="智能生成" />
+      <Card onPress={() => router.push("/compose?mode=paper")} style={{ gap: 4 }}>
+        <Text style={{ fontWeight: "700", color: colors.ink }}>🧩 组卷中心（结构化）</Text>
         <Text style={{ color: colors.sub, fontSize: font.sub }}>按 知识点 + 题型 + 难度 + 数量 一键组卷</Text>
       </Card>
-      <Card style={{ gap: 4 }}>
-        <Text style={{ fontWeight: "700", color: colors.ink }}>🤖 AI 组卷 / 出题</Text>
-        <Text style={{ color: colors.sub, fontSize: font.sub }}>自然语言描述，DeepSeek 生成真题</Text>
-        <Tag text="建设中" tone="warn" />
+      <Card onPress={() => router.push("/compose?mode=questions")} style={{ gap: 4 }}>
+        <Text style={{ fontWeight: "700", color: colors.ink }}>🤖 AI 出题</Text>
+        <Text style={{ color: colors.sub, fontSize: font.sub }}>DeepSeek 生成真题，直接入题库</Text>
       </Card>
+
+      <SectionTitle title="试卷库" />
+      {s.papers.length ? (
+        s.papers.slice(0, 12).map((p) => (
+          <Card key={p.id} onPress={() => router.push(`/exam/${p.id}`)}>
+            <Text style={{ fontWeight: "700", color: colors.ink }}>{p.title}</Text>
+            <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>
+              {p.subject} · {p.questions} 题 · {p.score} 分
+            </Text>
+          </Card>
+        ))
+      ) : (
+        <Card><Text style={{ color: colors.muted }}>还没有试卷，去「组卷中心」生成一套</Text></Card>
+      )}
     </Screen>
   );
 }

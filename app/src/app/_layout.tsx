@@ -34,6 +34,9 @@ export default function RootLayout() {
           <Stack.Screen name="(teacher)" />
           <Stack.Screen name="exam/[paperId]" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="result/[paperId]" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="grade/[id]" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="compose" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="drill" options={{ animation: "slide_from_right" }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

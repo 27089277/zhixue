@@ -1,28 +1,46 @@
+import { useRouter } from "expo-router";
 import { useStore } from "@/store/useStore";
 import { Card, Screen, SectionTitle, Tag, Empty } from "@/components/ui";
-import { Text } from "react-native";
+import { Text, View } from "react-native";
 import { colors, font } from "@/theme/tokens";
 
 export default function TeacherGrading() {
+  const router = useRouter();
   const subs = useStore((s) => s.submissions);
+  const papers = useStore((s) => s.papers);
   const pending = subs.filter((x) => !x.gradedAt);
   const graded = subs.filter((x) => x.gradedAt);
+  const title = (pid: string) => papers.find((p) => p.id === pid)?.title || pid;
+
   return (
     <Screen>
-      <SectionTitle title="批改" extra={<Tag text={`待批 ${pending.length}`} tone="warn" />} />
-      {subs.length ? (
-        subs.map((x) => (
-          <Card key={x.id}>
-            <Text style={{ fontWeight: "700", color: colors.ink }}>{x.studentName || "学生"}</Text>
+      <SectionTitle title="待批改" extra={<Tag text={`${pending.length}`} tone="warn" />} />
+      {pending.length ? (
+        pending.map((x) => (
+          <Card key={x.id} onPress={() => router.push(`/grade/${x.id}`)}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={{ fontWeight: "700", color: colors.ink }}>{x.studentName || "学生"}</Text>
+              <Tag text="去批改" />
+            </View>
             <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>
-              {x.gradedAt ? `已批改 · 最终 ${x.finalScore ?? x.score} 分` : `待批改 · 客观 ${x.score}/${x.objectiveTotal}`}
+              {title(x.paperId)} · 客观 {x.score}/{x.objectiveTotal} · 主观 {x.pendingManual} 题待批
             </Text>
           </Card>
         ))
       ) : (
-        <Empty text="暂无学生答卷（学生答题后出现，支持手写红笔批注）" />
+        <Empty text="暂无待批答卷" />
       )}
-      {graded.length ? null : null}
+
+      <SectionTitle title="已批改" extra={<Tag text={`${graded.length}`} />} />
+      {graded.map((x) => (
+        <Card key={x.id} onPress={() => router.push(`/grade/${x.id}`)}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+            <Text style={{ fontWeight: "700", color: colors.ink }}>{x.studentName || "学生"}</Text>
+            <Text style={{ color: colors.ok, fontWeight: "700", fontSize: font.sub }}>{x.finalScore ?? x.score} 分</Text>
+          </View>
+          <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>{title(x.paperId)}</Text>
+        </Card>
+      ))}
     </Screen>
   );
 }

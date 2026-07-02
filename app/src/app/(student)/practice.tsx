@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import { useStore } from "@/store/useStore";
 import { Card, Empty, Screen, SectionTitle, Stars, Tag } from "@/components/ui";
@@ -6,6 +8,7 @@ import { colors, font, space } from "@/theme/tokens";
 
 // 练习（融合菁优网）：按知识点/学科浏览题库 + 组卷刷题。v1 从题库聚合知识点。
 export default function Practice() {
+  const router = useRouter();
   const questions = useStore((s) => s.questions);
 
   const bySubject = useMemo(() => {
@@ -32,11 +35,15 @@ export default function Practice() {
             </View>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: space.sm }}>
               {[...points.entries()].map(([pt, n]) => (
-                <View key={pt} style={{ backgroundColor: colors.brandSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}>
+                <Pressable
+                  key={pt}
+                  onPress={() => router.push(`/drill?subject=${encodeURIComponent(subject)}&point=${encodeURIComponent(pt)}`)}
+                  style={{ backgroundColor: colors.brandSoft, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 }}
+                >
                   <Text style={{ color: colors.brand, fontSize: font.cap, fontWeight: "600" }}>
                     {pt} · {n}
                   </Text>
-                </View>
+                </Pressable>
               ))}
             </View>
           </Card>
