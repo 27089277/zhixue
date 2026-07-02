@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
+import { HandwritingView, isHandwriting, parseStrokes } from "@/components/Handwriting";
 import { Card } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
@@ -74,7 +75,14 @@ export default function ResultScreen() {
                   <Text style={{ color: colors.sub, fontSize: font.sub }}>你的答案：<Text style={{ color: ok ? colors.ok : colors.danger }}>{mine || "未作答"}</Text></Text>
                   <Text style={{ color: colors.sub, fontSize: font.sub }}>正确答案：<Text style={{ color: colors.ok }}>{it.answer}</Text></Text>
                 </View>
-              ) : null}
+              ) : isHandwriting(mine) ? (
+                <View style={{ gap: 4 }}>
+                  <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>我的手写作答{result.annotations?.[it.no] ? " + 老师批注" : ""}</Text>
+                  <HandwritingView ink={parseStrokes(mine)} red={parseStrokes(result.annotations?.[it.no])} height={200} />
+                </View>
+              ) : (
+                <Text style={{ color: colors.sub, fontSize: font.sub }}>你的作答：{mine || "未作答"}</Text>
+              )}
               {it.analysis ? (
                 <View style={styles.analysis}>
                   <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700", marginBottom: 2 }}>解析</Text>

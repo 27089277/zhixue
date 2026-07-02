@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -13,7 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
-import { Handwriting, HandwritingRef } from "@/components/Handwriting";
+import { Handwriting, parseStrokes, serializeStrokes } from "@/components/Handwriting";
 import { colors, font, radius, space } from "@/theme/tokens";
 
 function fmt(ms: number) {
@@ -44,8 +44,6 @@ export default function ExamScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now, endsAt]);
 
-  const hwRef = useRef<HandwritingRef>(null);
-
   if (!paper) {
     return (
       <SafeAreaView style={styles.screen}>
@@ -68,10 +66,6 @@ export default function ExamScreen() {
   }
 
   function doSubmit(auto = false) {
-    // 解答题：若有手写轨迹，先记一个标记（真机 dev build 再导出 PNG 上传）
-    if (item.type === "解答题" && hwRef.current && !hwRef.current.isBlank() && !answers[item.no]?.value) {
-      s.saveAnswer(paper!.id, item.no, "[手写作答]");
-    }
     const submit = () => {
       s.submitPaper(paper!.id);
       router.replace(`/result/${paper!.id}`);
@@ -141,7 +135,11 @@ export default function ExamScreen() {
         ) : item.type === "解答题" ? (
           <View style={{ gap: 8, marginTop: 4 }}>
             <Text style={{ color: colors.sub, fontSize: font.sub }}>手写作答：</Text>
-            <Handwriting ref={hwRef} />
+            <Handwriting
+              key={item.no}
+              initial={parseStrokes(val)}
+              onChange={(st) => setVal(st.length ? serializeStrokes(st) : "")}
+            />
           </View>
         ) : (
           // 填空/其它：文本输入

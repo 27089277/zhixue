@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
+import { Handwriting, HandwritingRef, isHandwriting, parseStrokes, serializeStrokes } from "@/components/Handwriting";
 import { Card } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
@@ -20,6 +21,8 @@ export default function GradeScreen() {
   const [score, setScore] = useState(String(record?.manualScore ?? 0));
   const [feedback, setFeedback] = useState(record?.feedback || "请补充关键步骤，注意书写完整。");
   const [busy, setBusy] = useState(false);
+  // 每个主观题一个红笔批注层 ref
+  const annoRefs = useRef<Record<number, HandwritingRef | null>>({});
 
   if (!record || !paper) {
     return (
@@ -36,9 +39,15 @@ export default function GradeScreen() {
 
   function submit(returned: boolean) {
     const n = Math.min(maxManual, Math.max(0, Number(score) || 0));
+    // 收集红笔批注（每个主观题）
+    const annotations: Record<number, string> = { ...(record!.annotations || {}) };
+    subjective.forEach((it) => {
+      const h = annoRefs.current[it.no];
+      if (h && !h.isBlank()) annotations[it.no] = serializeStrokes(h.strokes());
+    });
     setBusy(true);
     try {
-      s.gradeSubmission(record!.id, n, feedback, returned);
+      s.gradeSubmission(record!.id, n, feedback, returned, annotations);
       Alert.alert("完成", returned ? "已退回学生修改" : `批改已提交，最终 ${(record!.score ?? 0) + n} 分`);
       router.back();
     } finally {
@@ -68,12 +77,23 @@ export default function GradeScreen() {
             <Card key={it.no} style={{ gap: 6 }}>
               <Text style={{ fontWeight: "800", color: colors.ink }}>第 {it.no} 题 · {it.score} 分</Text>
               <RichText html={it.title} />
-              <View style={styles.ans}>
-                <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>学生作答</Text>
-                <Text style={{ color: colors.ink, fontSize: font.sub, marginTop: 2 }}>
-                  {answerOf(it.no) === "[手写作答]" ? "（手写作答，真机版可查看/红笔批注）" : answerOf(it.no) || "未作答"}
-                </Text>
-              </View>
+              {isHandwriting(answerOf(it.no)) ? (
+                <View style={{ gap: 6 }}>
+                  <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>学生手写作答上批注（红笔）</Text>
+                  <Handwriting
+                    ref={(h) => { annoRefs.current[it.no] = h; }}
+                    background={parseStrokes(answerOf(it.no))}
+                    initial={parseStrokes(record.annotations?.[it.no])}
+                    penColor={colors.danger}
+                    height={220}
+                  />
+                </View>
+              ) : (
+                <View style={styles.ans}>
+                  <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>学生作答</Text>
+                  <Text style={{ color: colors.ink, fontSize: font.sub, marginTop: 2 }}>{answerOf(it.no) || "未作答"}</Text>
+                </View>
+              )}
               {it.answer ? <Text style={{ color: colors.ok, fontSize: font.sub }}>参考答案：{it.answer}</Text> : null}
             </Card>
           ))
