@@ -1,14 +1,20 @@
 import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useStore } from "@/store/useStore";
 import { currentProfile } from "@/store/permissions";
 import { Card, Screen, SectionTitle, Tag } from "@/components/ui";
 import { colors, font, space } from "@/theme/tokens";
 
 export default function StudentHome() {
+  const router = useRouter();
   const s = useStore();
   const me = currentProfile(s);
   // 我的待办作业（后端 hydrate 后的 assignments）
   const myAssignments = s.assignments.slice(0, 5);
+
+  function openPaper(paperId: string) {
+    if (s.papers.some((p) => p.id === paperId)) router.push(`/exam/${paperId}`);
+  }
 
   return (
     <Screen>
@@ -38,8 +44,11 @@ export default function StudentHome() {
       <SectionTitle title="待完成作业" extra={<Tag text={`${myAssignments.length} 项`} />} />
       {myAssignments.length ? (
         myAssignments.map((a) => (
-          <Card key={a.id}>
-            <Text style={{ fontSize: font.h3, fontWeight: "700", color: colors.ink }}>{a.title}</Text>
+          <Card key={a.id} onPress={() => openPaper(a.paperId)}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ fontSize: font.h3, fontWeight: "700", color: colors.ink, flex: 1 }}>{a.title}</Text>
+              <Tag text="去作答" />
+            </View>
             <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 4 }}>
               {a.className} · 截止 {(a.deadline || "").replace("T", " ")}
             </Text>
