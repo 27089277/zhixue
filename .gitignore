@@ -23,10 +23,11 @@ server/build/
 *.class
 
 # ===== 运行时数据 / 媒体对象存储（非源码）=====
-data/
-server/data/
-outputs/
-work/
+# 注意：用根锚定(/)，避免误伤 edu-mvp/src/data 等源码目录
+/data/
+/server/data/
+/outputs/
+/work/
 
 # ===== 编辑器 / 系统 =====
 .DS_Store
