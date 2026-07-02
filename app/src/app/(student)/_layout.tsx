@@ -1,0 +1,34 @@
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "@/theme/tokens";
+
+export default function StudentTabs() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.brand,
+        tabBarInactiveTintColor: colors.muted,
+        tabBarStyle: { borderTopColor: colors.line, height: 58, paddingBottom: 6, paddingTop: 6 },
+        tabBarLabelStyle: { fontSize: 11 },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{ title: "首页", tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="practice"
+        options={{ title: "练习", tabBarIcon: ({ color, size }) => <Ionicons name="library" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="mistakes"
+        options={{ title: "错题本", tabBarIcon: ({ color, size }) => <Ionicons name="alert-circle" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
+        name="me"
+        options={{ title: "我的", tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} /> }}
+      />
+    </Tabs>
+  );
+}
