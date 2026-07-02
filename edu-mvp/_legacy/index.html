@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智学云教</title>
+    <link rel="stylesheet" href="./styles.css?v=20260630-34" />
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen">
+      <div class="login-art">
+        <div class="brand login-brand">
+          <div class="brand-mark">Z</div>
+          <div>
+            <strong>智学云教</strong>
+            <span>ZHIXUE CAMPUS</span>
+          </div>
+        </div>
+        <div class="login-copy">
+          <span class="live-pill"><i></i> 题练讲评一体化</span>
+          <h1>让每一次落笔，<br />都有回应。</h1>
+          <p>从整卷作答、手写批注到个性化学情，老师和学生在同一个学习空间里高效协作。</p>
+        </div>
+        <div class="login-metrics">
+          <span><strong>18,642</strong>精选真题</span>
+          <span><strong>92%</strong>本周完成率</span>
+          <span><strong>216</strong>讲题视频</span>
+        </div>
+        <div class="login-social-proof">
+          <div class="mini-avatars"><b>张</b><b>王</b><b>李</b></div>
+          <span>正在服务 28 位教师与 682 名学生</span>
+        </div>
+      </div>
+      <form class="login-card" id="loginForm">
+        <div class="login-head">
+          <span class="login-kicker">SECURE ACCESS</span>
+          <h2 id="loginHeading">登录智学云教</h2>
+          <p id="loginSubheading">完成身份验证后，系统将匹配你的账号与权限</p>
+        </div>
+        <div class="account-detected hidden" id="accountDetected">
+          <span class="detected-avatar" id="detectedAvatar">张</span>
+          <span><strong id="detectedName">张老师</strong><small id="detectedScope">光明中学 · 教师账号</small></span>
+          <b>已识别</b>
+        </div>
+        <div class="role-entry hidden" id="roleEntry" aria-label="选择登录身份">
+          <button type="button" class="active" data-login-role="teacher"><i></i><span><strong>教师</strong><small>备课、发布与批改</small></span></button>
+          <button type="button" data-login-role="student"><i></i><span><strong>学生</strong><small>整卷答题与错题本</small></span></button>
+          <button type="button" data-login-role="admin"><i></i><span><strong>管理员</strong><small>组织、人员与权限</small></span></button>
+        </div>
+        <div class="login-tabs credential-control" role="tablist">
+          <button type="button" class="active" data-login-mode="sms">验证码</button>
+          <button type="button" data-login-mode="password">密码</button>
+        </div>
+        <label class="field credential-control">
+          <span>手机号码</span>
+          <div class="phone-row"><b>+86</b><input id="phoneInput" inputmode="tel" maxlength="11" value="13800000000" placeholder="请输入手机号" /></div>
+        </label>
+        <div class="field sms-field credential-control">
+          <span>验证码</span>
+          <div class="code-row">
+            <input id="codeInput" inputmode="numeric" maxlength="6" placeholder="请输入 6 位验证码" />
+            <button type="button" class="ghost" id="sendCode">获取验证码</button>
+          </div>
+        </div>
+        <label class="field password-field credential-control hidden">
+          <span>密码</span>
+          <input id="passwordInput" type="password" value="123456" placeholder="请输入密码" />
+        </label>
+        <label class="field login-role-select">
+          <span>进入身份</span>
+          <select id="loginRole" aria-hidden="true" tabindex="-1">
+            <option value="teacher">老师：张老师</option>
+            <option value="student">学生：王子涵</option>
+            <option value="admin">管理员：赵管理员</option>
+          </select>
+        </label>
+        <div class="security-line credential-control">
+          <label><input type="checkbox" checked /> 已阅读并同意协议</label>
+          <label><input type="checkbox" id="rememberLogin" checked /> 保持登录</label>
+          <button type="button" class="link-btn" id="demoCode">使用演示账号</button>
+        </div>
+        <div class="sso-login credential-control">
+          <button type="button" id="ssoLogin"><span>SSO</span><strong>使用学校统一身份认证登录</strong></button>
+          <small>支持 OAuth2 / CAS / LDAP 对接，演示环境将模拟光明中学 SSO。</small>
+        </div>
+        <button class="primary login-submit" type="submit"><span class="login-button-label">安全登录</span><span class="login-button-arrow">→</span></button>
+        <p class="login-tip credential-control">演示账号：管理员 137 · 教师 138 · 学生 139，尾号均补 8 个 0；验证码 <strong>246810</strong></p>
+      </form>
+    </section>
+
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">智</div>
+          <div>
+            <strong>智学云教</strong>
+            <span>题练讲评一体化</span>
+          </div>
+        </div>
+        <nav class="side-nav" aria-label="主导航">
+          <button class="active" data-section="workspace"><span>▦</span>工作台</button>
+          <button data-section="org"><span>▤</span>组织与班级</button>
+          <button data-section="bank"><span>▧</span>题库管理</button>
+          <div class="side-subnav" data-parent-section="bank">
+            <button type="button" data-bank-view="questions">题目</button>
+            <button type="button" data-bank-view="papers">试卷</button>
+            <button type="button" data-bank-view="videos">讲解视频</button>
+          </div>
+          <button data-section="homework"><span>☑</span>作业与考试</button>
+          <button data-section="grading"><span>✎</span>批改与评价</button>
+          <button data-section="analytics"><span>◌</span>学情分析</button>
+          <button data-section="admin"><span>⚙</span>后台管理</button>
+        </nav>
+        <div class="teacher-card">
+          <div class="avatar" id="currentAvatar">张</div>
+          <div>
+            <strong id="currentUserName">张老师</strong>
+            <span id="currentUserScope">初中数学组</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div class="role-switch" role="tablist" aria-label="角色视图">
+            <button class="active" data-role="teacher">老师工作台</button>
+            <button data-role="student">学生端预览</button>
+            <button data-role="admin">管理后台</button>
+          </div>
+          <label class="search">
+            <span>⌕</span>
+            <input id="globalSearch" placeholder="搜索学生、班级、试卷、资源等" />
+          </label>
+          <div class="top-actions">
+            <button class="ghost" id="permissionBtn">权限</button>
+            <button class="ghost" id="syncBtn">同步</button>
+            <button class="ghost" id="notificationBtn">通知 <b>12</b></button>
+            <button class="primary" id="publishTop">发布作业</button>
+            <button class="ghost" id="logoutBtn">退出</button>
+          </div>
+        </header>
+
+        <section class="role-banner" id="roleBanner">
+          <div>
+            <p>当前视图</p>
+            <h1>老师工作台</h1>
+          </div>
+          <div class="banner-metrics">
+            <span>今日待批 12</span>
+            <span>题库 18,642</span>
+            <span>视频 216</span>
+          </div>
+        </section>
+
+        <section class="content-grid" id="workspace">
+          <article class="panel org-panel">
+            <div class="panel-head">
+              <div>
+                <p>组织与班级概览</p>
+                <h2>光明中学</h2>
+              </div>
+              <select id="classSelect">
+                <option>初三(1)班</option>
+                <option>初三(1)班</option>
+                <option>初二(4)班</option>
+              </select>
+            </div>
+            <div class="metric-row">
+              <div><strong>18</strong><span>班级</span></div>
+              <div><strong>682</strong><span>学生</span></div>
+              <div><strong>28</strong><span>教师</span></div>
+              <div><strong>92%</strong><span>本周完成率</span></div>
+            </div>
+            <table class="compact-table">
+              <thead><tr><th>班级</th><th>人数</th><th>班主任</th><th>完成率</th><th>操作</th></tr></thead>
+              <tbody id="classRows"></tbody>
+            </table>
+          </article>
+
+          <article class="panel bank-panel">
+            <div class="panel-head">
+              <div>
+                <p>题库编辑器</p>
+                <h2>公共题库与教师题库</h2>
+              </div>
+              <button class="primary small" id="newQuestion">新增题目</button>
+            </div>
+            <div class="tabs">
+              <button class="active" data-bank-tab="edit">题目编辑</button>
+              <button data-bank-tab="paper">试卷组卷</button>
+              <button data-bank-tab="knowledge">知识点</button>
+            </div>
+            <div class="filters">
+              <select><option>数学</option><option>语文</option></select>
+              <select><option>一元二次方程</option><option>相似三角形</option></select>
+              <select><option>中等</option><option>较难</option></select>
+              <button class="ghost small">导入题目</button>
+            </div>
+            <div class="question-editor" id="questionEditor">
+              <div class="editor-toolbar">
+                <button>B</button><button>I</button><button>公式</button><button>图片</button><button>解析</button>
+              </div>
+              <p class="question-text">已知关于 x 的一元二次方程 x² - 2x + m = 0 有两个不相等的实数根，则实数 m 的取值范围是（ ）</p>
+              <div class="option-grid">
+                <label><input type="radio" name="q" /> A. m &lt; 1</label>
+                <label><input type="radio" name="q" /> B. m ≤ 1</label>
+                <label><input type="radio" name="q" /> C. m &gt; 1</label>
+                <label><input type="radio" name="q" /> D. m ≥ 1</label>
+              </div>
+              <div class="tag-row">
+                <span>2024 中考真题</span><span>一元二次方程</span><span>难度：中</span><span>解析完整</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel video-panel">
+            <div class="panel-head">
+              <div>
+                <p>视频课程上传队列</p>
+                <h2>讲题视频</h2>
+              </div>
+              <button class="ghost small" id="addVideo">上传</button>
+            </div>
+            <div id="videoQueue" class="video-list"></div>
+          </article>
+
+          <article class="panel flow-panel">
+            <div class="panel-head">
+              <div>
+                <p>作业创建流程</p>
+                <h2>从题库选题到发布</h2>
+              </div>
+              <span class="status-pill">第 1 步 / 3 步</span>
+            </div>
+            <div class="stepper">
+              <span class="done">1 选择内容</span><span>2 设置要求</span><span>3 发布作业</span>
+            </div>
+            <div class="filters">
+              <input id="questionFilter" placeholder="搜索题目或知识点" />
+              <select><option>单选题</option><option>解答题</option></select>
+              <select><option>公共真题库</option><option>教师题库</option><option>学生练习库</option></select>
+            </div>
+            <table class="compact-table selectable">
+              <thead><tr><th></th><th>题目</th><th>题型</th><th>知识点</th><th>来源</th></tr></thead>
+              <tbody id="homeworkRows"></tbody>
+            </table>
+            <div class="flow-footer">
+              <span id="selectedCount">已选 3 题，总分 30 分</span>
+              <button class="primary" id="publishHomework">下一步：设置要求</button>
+            </div>
+          </article>
+
+          <article class="panel grading-panel">
+            <div class="panel-head">
+              <div>
+                <p>批改与评价</p>
+                <h2>按学生批改</h2>
+              </div>
+              <select id="studentSelect"></select>
+            </div>
+            <div class="grading-layout">
+              <div class="answer-paper">
+                <div class="paper-head">
+                  <strong>3. 解方程：2x² - 5x + 2 = 0（10 分）</strong>
+                  <span>学生答案</span>
+                </div>
+                <canvas id="gradingCanvas" width="620" height="360" aria-label="老师手写批注画布"></canvas>
+              </div>
+              <div class="grading-side">
+                <h3>评分标准</h3>
+                <label><input type="checkbox" checked /> 因式分解正确（4 分）</label>
+                <label><input type="checkbox" checked /> 两根写出完整（3 分）</label>
+                <label><input type="checkbox" checked /> 过程表达规范（3 分）</label>
+                <div class="score-box">
+                  <span>评分</span>
+                  <strong id="scoreValue">10</strong>
+                  <input type="range" min="0" max="10" value="10" id="scoreRange" />
+                </div>
+                <textarea id="teacherComment" placeholder="写下给学生的反馈...">思路清晰，建议继续保持过程书写规范。</textarea>
+                <button class="primary" id="submitGrade">提交批改</button>
+              </div>
+            </div>
+            <div class="pen-toolbar" data-target="gradingCanvas">
+              <button class="tool active" data-tool="pen">画笔</button>
+              <button class="tool" data-tool="eraser">橡皮</button>
+              <button class="swatch red active" data-color="#e3342f"></button>
+              <button class="swatch blue" data-color="#2364d2"></button>
+              <button class="swatch green" data-color="#0c8a5b"></button>
+              <button class="ghost small" data-action="undo">撤销</button>
+              <button class="ghost small" data-action="clear">清空</button>
+            </div>
+          </article>
+
+          <article class="panel analytics-panel">
+            <div class="panel-head">
+              <div>
+                <p>学情分析</p>
+                <h2>初三(1)班最近一次作业</h2>
+              </div>
+              <button class="ghost small" id="exportReport">导出报告</button>
+            </div>
+            <div class="analytics-grid">
+              <div class="donut"><span>72%</span><small>总体掌握率</small></div>
+              <div class="bar-chart" id="barChart"></div>
+              <div class="risk-list" id="riskList"></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="section-page hidden" id="org"></section>
+        <section class="section-page hidden" id="bank"></section>
+        <section class="section-page hidden" id="homework"></section>
+        <section class="section-page hidden" id="grading"></section>
+        <section class="section-page hidden" id="video"></section>
+        <section class="section-page hidden" id="analytics"></section>
+        <section class="section-page hidden" id="admin"></section>
+
+        <section class="student-dock hidden" id="studentDock">
+          <div class="tablet">
+            <div class="tablet-top">
+              <button class="back hidden" aria-label="返回试卷库" title="返回试卷库">‹</button>
+              <div>
+                <strong>数学作业练习</strong>
+                <span>12 / 18 题 · 剩余 42:18</span>
+              </div>
+              <div class="exam-clock compact hidden" id="examClockWrap"><span>剩余</span><strong id="examClock">--:--</strong></div>
+              <button class="ghost small" id="studentReportBtn">作业报告</button>
+            </div>
+            <div class="student-progress"><i style="width: 67%"></i></div>
+            <div class="student-body">
+              <div class="question-main">
+                <section class="paper-library" id="paperLibraryView">
+                  <div class="assignment-section">
+                    <div class="panel-head">
+                      <div><p>老师发布</p><h2>我的作业</h2></div>
+                    </div>
+                    <div class="assignment-list" id="studentAssignmentList"></div>
+                  </div>
+                  <div class="panel-head">
+                    <div>
+                      <p>历史真题 / 自主练习</p>
+                      <h2>选择一整张试卷开始练习</h2>
+                    </div>
+                    <div class="subnav">
+                      <button class="active" data-paper-filter="all">全部</button>
+                      <button data-paper-filter="中考真题">中考</button>
+                      <button data-paper-filter="高考模拟">高考</button>
+                      <button data-paper-filter="unfinished">未完成</button>
+                    </div>
+                  </div>
+                  <div class="paper-filter-bar">
+                    <input id="studentPaperSearch" placeholder="搜索试卷名称、地区或年份" />
+                    <select id="studentYearFilter"><option value="">全部年份</option><option>2024</option><option>2023</option><option>2022</option></select>
+                    <select id="studentRegionFilter"><option value="">全部地区</option><option>上海</option><option>江苏</option><option>广州</option></select>
+                  </div>
+                  <div class="paper-list" id="studentPaperList"></div>
+                </section>
+                <section class="paper-exam-view hidden" id="paperExamView">
+                  <div class="paper-toolbar">
+                    <div>
+                      <p class="badge" id="currentQuestionMeta">题型 · 分值</p>
+                      <h2 id="currentQuestionTitle">试题内容</h2>
+                    </div>
+                    <button class="ghost small" id="paperOverviewBtn">整卷题卡</button>
+                  </div>
+                  <div id="paperQuestionContent"></div>
+                  <div class="handwriting-area" id="handwritingArea">
+                    <h3>手写过程（支持触屏笔）</h3>
+                    <canvas id="studentCanvas" width="650" height="360" aria-label="学生触屏笔答题画布"></canvas>
+                    <div class="pen-toolbar" data-target="studentCanvas">
+                      <button class="tool active" data-tool="pen">画笔</button>
+                      <button class="tool" data-tool="eraser">橡皮</button>
+                      <button class="tool" data-tool="grid">页面网格</button>
+                      <button class="swatch black active" data-color="#111827"></button>
+                      <button class="swatch blue" data-color="#2364d2"></button>
+                      <button class="swatch green" data-color="#0c8a5b"></button>
+                      <button class="ghost small" data-action="undo">撤销</button>
+                      <button class="ghost small" data-action="clear">清空</button>
+                    </div>
+                  </div>
+                  <div class="exam-actions">
+                    <button class="ghost" id="prevQuestion">上一题</button>
+                    <span id="autoSaveStatus">答案自动保存</span>
+                    <button class="ghost" id="saveAndNext">保存并下一题</button>
+                    <button class="primary" id="submitPaper">交卷</button>
+                  </div>
+                </section>
+              </div>
+              <aside class="student-side hidden" id="studentExamSide">
+                <div class="student-exam-extras">
+                <h3>今日任务</h3>
+                <div class="student-task active" data-student-task="answer">
+                  <strong>数学作业练习</strong>
+                  <span>18 题 · 截止今晚 22:00</span>
+                </div>
+                <div class="student-task" data-student-task="wrong">
+                  <strong>错题巩固</strong>
+                  <span>6 题 · 二次函数专项</span>
+                </div>
+                <div class="student-task" data-student-task="video">
+                  <strong>讲题视频</strong>
+                  <span>2 个未看 · 老师推荐</span>
+                </div>
+                <h3>错题提醒</h3>
+                <div class="reminder active">12 等边三角形性质应用 <span>未掌握</span></div>
+                <div class="reminder">15 二次函数图像与性质 <span>薄弱</span></div>
+                <h3>老师反馈</h3>
+                <p>推理过程写得比较清楚，注意最后结论要完整表达。</p>
+                <h3>推荐练习</h3>
+                <button class="ghost" id="refreshPractice">换一换</button>
+                </div>
+                <h3 class="exam-card-title">整卷题卡</h3>
+                <div class="question-legend"><span><i class="current"></i>当前</span><span><i class="done"></i>已答</span><span><i></i>未答</span></div>
+                <div class="paper-nav" id="paperQuestionNav"></div>
+              </aside>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="modalBackdrop" aria-hidden="true">
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head">
+          <div>
+            <p id="modalEyebrow">配置</p>
+            <h2 id="modalTitle">标题</h2>
+          </div>
+          <button class="ghost small" id="closeModal">关闭</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
+        <div class="modal-foot" id="modalFoot"></div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <script src="./app.js?v=20260630-34"></script>
+  </body>
+</html>

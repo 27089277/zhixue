@@ -1,0 +1,34 @@
+# ===== 密钥 / 环境变量（切勿提交）=====
+backend/.env
+server/.env
+**/.env.local
+*.key
+
+# ===== Python 后端 =====
+backend/.venv/
+backend/*.db
+__pycache__/
+*.pyc
+
+# ===== Node / 前端 =====
+node_modules/
+edu-mvp/node_modules/
+edu-mvp/dist/
+edu-mvp/.vite/
+*.log
+
+# ===== Java / Spring 后端 =====
+server/target/
+server/build/
+*.class
+
+# ===== 运行时数据 / 媒体对象存储（非源码）=====
+data/
+server/data/
+outputs/
+work/
+
+# ===== 编辑器 / 系统 =====
+.DS_Store
+.idea/
+*.iml

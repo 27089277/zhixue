@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: zhixue
+      MYSQL_USER: zhixue
+      MYSQL_PASSWORD: zhixue
+      MYSQL_ROOT_PASSWORD: root-change-me
+    ports:
+      - "3306:3306"
+    volumes:
+      - zhixue_mysql:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uzhixue", "-pzhixue"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  zhixue_mysql:
