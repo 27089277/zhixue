@@ -20,17 +20,12 @@ mkdir -p /opt/zhixue
 if [ -d /opt/zhixue/src/.git ]; then cd /opt/zhixue/src && git fetch --all -q && git reset --hard origin/main
 else git clone -q https://github.com/27089277/zhixue.git /opt/zhixue/src; fi
 
-LOG "build frontend (AntD web)"
-cd /opt/zhixue/src/edu-mvp
-npm ci --no-audit --no-fund
-npm run build
-rm -rf /opt/zhixue/web && mkdir -p /opt/zhixue/web && cp -r dist/* /opt/zhixue/web/
-
-LOG "build unified app web (Expo → /m)"
+LOG "build unified web (Expo, 正式 Web = 三端同码, 根路径)"
 cd /opt/zhixue/src/app
 npm ci --no-audit --no-fund
 EXPO_PUBLIC_API_BASE=/api npx expo export -p web --output-dir dist-web
-rm -rf /opt/zhixue/webapp && mkdir -p /opt/zhixue/webapp && cp -r dist-web/* /opt/zhixue/webapp/
+rm -rf /opt/zhixue/web && mkdir -p /opt/zhixue/web && cp -r dist-web/* /opt/zhixue/web/
+# 老 AntD 版已退役（源码仍在 edu-mvp/，不再部署）
 
 LOG "build backend"
 cd /opt/zhixue/src/server
@@ -104,12 +99,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 180s;
     }
-    # 统一 App Web（Expo，三端同码）：/m
-    location /m/ {
-        alias /opt/zhixue/webapp/;
-        try_files $uri $uri/ /m/index.html;
-    }
-    location = /m { return 301 /m/; }
+    # 统一 Web（Expo，三端同码，正式版）
     location / { try_files $uri $uri/ /index.html; }
 }
 NGINX
