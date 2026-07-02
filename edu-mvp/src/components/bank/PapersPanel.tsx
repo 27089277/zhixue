@@ -10,6 +10,7 @@ import {
 } from "../../store/permissions";
 import { aiPost } from "../../api/client";
 import { useNotify } from "../../hooks/useNotify";
+import ComposeCenter from "./ComposeCenter";
 
 const PAGE = 8;
 
@@ -21,6 +22,7 @@ export default function PapersPanel() {
   const [aiIds, setAiIds] = useState<Set<string> | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [limit, setLimit] = useState(PAGE);
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const visiblePapers = useMemo(
     () => s.papers.filter((p) => canViewBankAsset(s, p)),
@@ -77,9 +79,11 @@ export default function PapersPanel() {
   return (
     <article className="panel bank-paper-panel">
       <PaperSearchBox onSearch={smartSearch} busy={aiBusy} active={!!aiIds} />
-      <div className="paper-lib-toolbar">
+      <div className="paper-lib-toolbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span className="muted">共 {filtered.length} 套</span>
+        <button className="primary small" onClick={() => setComposeOpen(true)}>🧩 组卷中心</button>
       </div>
+      <ComposeCenter open={composeOpen} onClose={() => setComposeOpen(false)} />
 
       <div className="paper-asset-grid">
         {shown.length === 0 && <div className="empty-state">没有符合条件的试卷</div>}

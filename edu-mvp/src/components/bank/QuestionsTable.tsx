@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Input, Table, Space, Button, Popconfirm } from "antd";
+import { Input, Table, Space, Button, Popconfirm, Tree, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useStore } from "../../store/useStore";
 import {
@@ -24,17 +24,41 @@ export default function QuestionsTable() {
   const notify = useNotify();
   const profileName = currentProfile(s).name;
   const [keyword, setKeyword] = useState("");
+  const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
+
+  // 知识点体系树（菁优网式）：学科 → 知识点(题数)
+  const knowledgeTree = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    visibleQuestions(s).forEach((q) => {
+      const subj = q.subject || "综合";
+      const pt = q.point || "未分类";
+      if (!map.has(subj)) map.set(subj, new Map());
+      const m = map.get(subj)!;
+      m.set(pt, (m.get(pt) || 0) + 1);
+    });
+    return [...map.entries()].map(([subj, pts]) => ({
+      title: subj,
+      key: `subj::${subj}`,
+      selectable: false,
+      children: [...pts.entries()].map(([pt, n]) => ({
+        title: `${pt}（${n}）`,
+        key: `pt::${pt}`,
+      })),
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s.questions, s.role]);
 
   const rows: Row[] = useMemo(() => {
     return visibleQuestions(s)
       .map((q) => ({ ...q, realIndex: s.questions.indexOf(q) }))
       .filter((q) => {
+        if (selectedPoint && q.point !== selectedPoint) return false;
         if (!keyword.trim()) return true;
         const k = keyword.trim().toLowerCase();
         return `${richTextToPlain(q.title)} ${q.point} ${q.source}`.toLowerCase().includes(k);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [s.questions, s.role, keyword]);
+  }, [s.questions, s.role, keyword, selectedPoint]);
 
   function scopeCategory(r: Row): "public" | "mine" | "shared" {
     if (r.visibility !== "teacher") return "public";
@@ -200,20 +224,50 @@ export default function QuestionsTable() {
           style={{ maxWidth: 360 }}
         />
       </div>
-      <div style={{ padding: "0 16px 16px" }}>
-        <Table<Row>
-          rowKey="realIndex"
-          columns={columns}
-          dataSource={rows}
-          size="middle"
-          pagination={{
-            pageSize: 5,
-            hideOnSinglePage: false,
-            showSizeChanger: true,
-            pageSizeOptions: [5, 10, 20],
-            showTotal: (t) => `共 ${t} 题`,
-          }}
-        />
+      <div className="bank-kp-layout" style={{ display: "flex", gap: 12, padding: "0 16px 16px", alignItems: "flex-start" }}>
+        {/* 知识点体系树（菁优网式）*/}
+        <div className="kp-tree" style={{ width: 230, flexShrink: 0 }}>
+          <div className="kp-tree-head">知识点体系</div>
+          {knowledgeTree.length ? (
+            <Tree
+              treeData={knowledgeTree}
+              defaultExpandAll
+              blockNode
+              selectedKeys={selectedPoint ? [`pt::${selectedPoint}`] : []}
+              onSelect={(keys) => {
+                const k = String(keys[0] || "");
+                setSelectedPoint(k.startsWith("pt::") ? k.slice(4) : null);
+              }}
+            />
+          ) : (
+            <div style={{ color: "#8a978f", fontSize: 12, padding: 8 }}>暂无题目</div>
+          )}
+          {selectedPoint && (
+            <Tag
+              closable
+              color="green"
+              style={{ marginTop: 8 }}
+              onClose={() => setSelectedPoint(null)}
+            >
+              {selectedPoint}
+            </Tag>
+          )}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Table<Row>
+            rowKey="realIndex"
+            columns={columns}
+            dataSource={rows}
+            size="middle"
+            pagination={{
+              pageSize: 5,
+              hideOnSinglePage: false,
+              showSizeChanger: true,
+              pageSizeOptions: [5, 10, 20],
+              showTotal: (t) => `共 ${t} 题`,
+            }}
+          />
+        </div>
       </div>
     </article>
   );
