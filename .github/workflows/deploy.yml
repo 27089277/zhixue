@@ -25,6 +25,6 @@ jobs:
           command_timeout: 40m
           script: |
             echo "${{ secrets.SERVER_PASSWORD }}" | sudo -S bash -c '
-              curl -fsSL https://raw.githubusercontent.com/27089277/zhixue/main/deploy/deploy_server.sh -o /root/dep.sh &&
-              bash /root/dep.sh
+              curl -fsSL https://raw.githubusercontent.com/27089277/zhixue/${{ github.sha }}/deploy/deploy_server.sh -o /root/dep.sh &&
+              ZHIXUE_REF=${{ github.sha }} bash /root/dep.sh
             '

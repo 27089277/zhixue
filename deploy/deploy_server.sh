@@ -18,10 +18,12 @@ node -v; java -version 2>&1 | head -1
 LOG "fetch repo (多镜像 tarball, 国内加速)"
 mkdir -p /opt/zhixue
 rm -rf /opt/zhixue/src && mkdir -p /opt/zhixue/src
+REF="${ZHIXUE_REF:-main}"
+echo "fetch ref: $REF"
 URLS=(
-  "https://codeload.github.com/27089277/zhixue/tar.gz/refs/heads/main"
-  "https://ghfast.top/https://github.com/27089277/zhixue/archive/refs/heads/main.tar.gz"
-  "https://ghproxy.net/https://github.com/27089277/zhixue/archive/refs/heads/main.tar.gz"
+  "https://codeload.github.com/27089277/zhixue/tar.gz/$REF"
+  "https://ghfast.top/https://github.com/27089277/zhixue/archive/$REF.tar.gz"
+  "https://ghproxy.net/https://github.com/27089277/zhixue/archive/$REF.tar.gz"
 )
 OK=0
 for u in "${URLS[@]}"; do
