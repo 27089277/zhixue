@@ -118,8 +118,14 @@ export function parseCount(query: string, def: number): number {
   return def;
 }
 
-// 总题量：把「19道单选题，1道应用」这类多段数量相加（组卷需要正确的总数）。
+// 总题量：优先取显式总数「一共/共/总共 N 道题」；没有总数时，才把「19道单选，1道应用」这类分段相加。
+// 避免「一共20，前19单选，最后1应用」被错误加成 40。
 export function parseTotalCount(query: string, def: number): number {
+  const totalM = query.match(/(?:一共|共|总共|合计)\s*(\d+|[零一二两三四五六七八九十]+)\s*(?:道|个|题)/);
+  if (totalM) {
+    const n = /\d/.test(totalM[1]) ? Number(totalM[1]) : cnToNum(totalM[1]);
+    if (n && n > 0) return n;
+  }
   let total = 0;
   const re = /(\d+)\s*(?:道|个|题)/g;
   let m: RegExpExecArray | null;

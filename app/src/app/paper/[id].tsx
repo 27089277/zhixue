@@ -150,7 +150,7 @@ export default function PaperDetail() {
         };
         s.addAssignment(a);
       });
-      Alert.alert("发布成功", `已发布《${paper!.title}》到 ${targets.join("、")}`, [{ text: "好", onPress: () => router.back() }]);
+      Alert.alert("发布成功", `已发布《${paper!.title}》到 ${targets.join("、")}`, [{ text: "好", onPress: () => (router.canGoBack() ? router.back() : router.replace("/(teacher)/bank" as any)) }]);
     } finally {
       setBusy(false);
     }
@@ -161,7 +161,7 @@ export default function PaperDetail() {
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={26} color={colors.ink} /></Pressable>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(teacher)/bank" as any))} hitSlop={10}><Ionicons name="chevron-back" size={26} color={colors.ink} /></Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{isTeacher ? (editing ? "编辑试卷" : "试卷预览") : paper.title}</Text>
         {isTeacher ? (
           <Pressable onPress={() => (editing ? saveEdits() : enterEdit())} hitSlop={10}>

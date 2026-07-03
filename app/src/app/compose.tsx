@@ -49,6 +49,8 @@ export default function Compose() {
   const notify = (type: "success" | "error" | "info", msg: string) =>
     Alert.alert(type === "error" ? "失败" : type === "success" ? "成功" : "提示", msg);
   const diffWord = diff === "容易" ? "基础" : diff === "较难" ? "较难" : "中档";
+  // 生成成功后回到「题库/试卷库」，展示刚创建的试卷；避免无历史时 router.back() 报 GO_BACK 错误。
+  const goBank = () => router.replace("/(teacher)/bank" as any);
 
   async function runNL() {
     if (!nlText.trim()) return Alert.alert("提示", "说一句你的组卷要求，如：出一套初中物理电阻的卷子，6 道单选");
@@ -56,7 +58,7 @@ export default function Compose() {
     try {
       // 与 Web 完全一致：走 executeSmartAiRequest 组卷逻辑；试卷名称可自定义
       await executeSmartAiRequest(nlText.trim(), { mode: "assemble", title: title.trim() || undefined, notify });
-      router.back();
+      goBank();
     } finally {
       setBusy(false);
     }
@@ -70,7 +72,7 @@ export default function Compose() {
       setBusy(true);
       try {
         const qs = await generateQuestions({ subject, knowledgePoint: point.trim(), type, difficulty: diff, count: n });
-        Alert.alert("出题成功", `已生成 ${qs.length} 道题入库`, [{ text: "好", onPress: () => router.back() }]);
+        Alert.alert("出题成功", `已生成 ${qs.length} 道题入库`, [{ text: "好", onPress: goBank }]);
       } catch (e: any) {
         Alert.alert("失败", e?.message || "AI 生成失败");
       } finally {
@@ -85,7 +87,7 @@ export default function Compose() {
       try {
         const query = `生成一套${subject}关于${point.trim()}的测验，共${n}道${type}，${diffWord}`;
         await executeSmartAiRequest(query, { mode: "assemble", title: title.trim() || undefined, notify });
-        router.back();
+        goBank();
       } finally {
         setBusy(false);
       }
@@ -114,14 +116,14 @@ export default function Compose() {
         visibility: "teacher", owner: currentProfile(s).name, source: "题库抽题组卷", sharedWith: [], items,
       };
       s.addPaper(paper);
-      Alert.alert("组卷成功", `已从题库抽 ${items.length} 题组成《${paperTitle}》`, [{ text: "好", onPress: () => router.back() }]);
+      Alert.alert("组卷成功", `已从题库抽 ${items.length} 题组成《${paperTitle}》`, [{ text: "好", onPress: goBank }]);
     }
   }
 
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={10}><Ionicons name="chevron-back" size={26} color={colors.ink} /></Pressable>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : goBank())} hitSlop={10}><Ionicons name="chevron-back" size={26} color={colors.ink} /></Pressable>
         <Text style={styles.headerTitle}>{isQuestions ? "AI 出题" : "组卷中心"}</Text>
         <View style={{ width: 26 }} />
       </View>
