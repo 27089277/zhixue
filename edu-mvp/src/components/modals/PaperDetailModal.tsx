@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../../store/useStore";
 import { currentProfile } from "../../store/permissions";
-import { createBankQuestionFromPaperItem } from "../../lib/papers";
+import { createBankQuestionFromPaperItem, normalizePaperSections } from "../../lib/papers";
 import { useNotify } from "../../hooks/useNotify";
 import { HtmlContent } from "../common/RichText";
 import { ModalShell } from "./ModalHost";
-import type { Paper } from "../../types";
+import type { Paper, PaperItem } from "../../types";
 
 // 整卷预览 / 整卷题卡，移植自 legacy paperDetail / paperOverview。
 // 这是此前“导入试卷无法预览”bug 的核心；类型保证 items/sections 必为数组。
@@ -78,7 +78,9 @@ export default function PaperDetailModal() {
   return <PaperPreview paper={modal.payload as Paper} />;
 }
 
-// 整卷预览：老师可勾选题目「存入题库」（不再自动把题塞进题库）。
+const EDIT_TYPES = ["单选题", "多选题", "填空题", "判断题", "解答题"];
+
+// 整卷预览/编辑：老师可勾选题目「存入题库」，也可「编辑」修正 AI 生成的题目。
 function PaperPreview({ paper }: { paper: Paper }) {
   const s = useStore();
   const notify = useNotify();
@@ -86,6 +88,108 @@ function PaperPreview({ paper }: { paper: Paper }) {
   const canPick = s.role === "teacher";
   const items = paper.items || [];
   const [picked, setPicked] = useState<Set<number>>(new Set());
+
+  // 编辑态
+  const [editing, setEditing] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(paper.title);
+  const [draftItems, setDraftItems] = useState<PaperItem[]>([]);
+
+  function enterEdit() {
+    setDraftTitle(paper.title);
+    setDraftItems(items.map((it) => ({ ...it, choices: it.choices ? [...it.choices] : undefined })));
+    setEditing(true);
+  }
+  function patchItem(idx: number, patch: Partial<PaperItem>) {
+    setDraftItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  }
+  function deleteItem(idx: number) {
+    setDraftItems((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function addItem() {
+    setDraftItems((prev) => [
+      ...prev,
+      { no: prev.length + 1, type: "单选题", title: "", choices: ["", "", "", ""], answer: "", score: 4, status: "未答" },
+    ]);
+  }
+  function saveEdits() {
+    const next: PaperItem[] = draftItems.map((it, i) => ({
+      ...it,
+      no: i + 1,
+      title: (it.title || "").trim(),
+      choices: it.choices?.map((c) => c.trim()).filter(Boolean),
+      answer: (it.answer || "").trim(),
+      score: Number(it.score) || 0,
+    }));
+    if (!next.length) return notify("info", "试卷至少保留 1 道题");
+    if (next.some((it) => !it.title)) return notify("info", "有题目的题干为空，请填写或删除");
+    const score = next.reduce((sum, it) => sum + (Number(it.score) || 0), 0);
+    const updated: Paper = {
+      ...paper,
+      title: draftTitle.trim() || paper.title,
+      items: next,
+      questions: next.length,
+      score,
+      sections: normalizePaperSections(paper.sections, next),
+      tags: Array.from(new Set([...(paper.tags || []), "已校对"])),
+    };
+    s.addPaper(updated, { persist: paper.visibility !== "student" });
+    setEditing(false);
+    notify("success", "试卷修改已保存");
+  }
+
+  if (editing) {
+    return (
+      <ModalShell
+        eyebrow="编辑试卷"
+        title={draftTitle || "编辑试卷"}
+        footer={
+          <>
+            <button className="ghost" onClick={() => setEditing(false)}>取消</button>
+            <button className="primary" onClick={saveEdits}>保存修改</button>
+          </>
+        }
+      >
+        <div className="paper-edit-form" style={{ display: "grid", gap: 12 }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ fontSize: 13, color: "#5b6b64", fontWeight: 600 }}>试卷名称</span>
+            <input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} />
+          </label>
+          {draftItems.map((it, idx) => (
+            <div key={idx} style={{ border: "1px solid #e6ece9", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <b>第 {idx + 1} 题</b>
+                <button className="ghost small" onClick={() => deleteItem(idx)}>删除</button>
+              </div>
+              <select value={it.type} onChange={(e) => patchItem(idx, { type: e.target.value })}>
+                {EDIT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <textarea rows={2} placeholder="题干" value={it.title} onChange={(e) => patchItem(idx, { title: e.target.value })} />
+              {(it.type === "单选题" || it.type === "多选题" || it.type === "判断题") && (
+                <textarea
+                  rows={4}
+                  placeholder={"选项，每行一个\nA\nB\nC\nD"}
+                  value={(it.choices || []).join("\n")}
+                  onChange={(e) => patchItem(idx, { choices: e.target.value.split("\n") })}
+                />
+              )}
+              <div style={{ display: "flex", gap: 10 }}>
+                <label style={{ flex: 1, display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, color: "#5b6b64" }}>答案</span>
+                  <input value={it.answer} onChange={(e) => patchItem(idx, { answer: e.target.value })} placeholder="如 A / 42 / 见解析" />
+                </label>
+                <label style={{ width: 90, display: "grid", gap: 4 }}>
+                  <span style={{ fontSize: 12, color: "#5b6b64" }}>分值</span>
+                  <input type="number" value={it.score} onChange={(e) => patchItem(idx, { score: Number(e.target.value) || 0 })} />
+                </label>
+              </div>
+              <textarea rows={2} placeholder="解析（可选）" value={it.analysis || ""} onChange={(e) => patchItem(idx, { analysis: e.target.value })} />
+            </div>
+          ))}
+          <button className="ghost" onClick={addItem}>＋ 添加题目</button>
+        </div>
+      </ModalShell>
+    );
+  }
 
   const allPicked = useMemo(
     () => items.length > 0 && picked.size === items.length,
@@ -134,6 +238,9 @@ function PaperPreview({ paper }: { paper: Paper }) {
         <>
           {canPick && items.length > 0 && (
             <>
+              <button className="ghost" onClick={enterEdit}>
+                编辑试卷
+              </button>
               <button className="ghost" onClick={toggleAll}>
                 {allPicked ? "取消全选" : "全选"}
               </button>
