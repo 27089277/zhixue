@@ -109,7 +109,7 @@ export interface StoreState {
 
   // actions: data mutations
   setPapers: (papers: Paper[]) => void;
-  addPaper: (paper: Paper) => void;
+  addPaper: (paper: Paper, opts?: { persist?: boolean }) => void;
   deletePaper: (id: string) => void;
   addQuestions: (questions: Question[]) => void;
   addMyPracticeQuestions: (questions: Question[]) => void; // 学生私有题：仅本地
@@ -340,8 +340,8 @@ export const useStore = create<StoreState>()(
         }),
 
       setPapers: (papers) => set({ papers: preparePapers(papers) }),
-      addPaper: (paper) => {
-        persistPaper(paper); // 落库 MySQL（同 id 为更新）
+      addPaper: (paper, opts) => {
+        if (opts?.persist !== false) persistPaper(paper); // 落库 MySQL（同 id 为更新）；学生私有真题 persist:false 只存本地
         set((s) => {
           const exists = s.papers.some((p) => p.id === paper.id);
           const next = exists
