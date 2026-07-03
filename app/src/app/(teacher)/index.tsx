@@ -1,9 +1,10 @@
-import { Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { currentProfile, visibleClasses } from "@/store/permissions";
 import { Card, Screen, SectionTitle } from "@/components/ui";
-import { colors, font, space } from "@/theme/tokens";
+import { colors, font, radius, space } from "@/theme/tokens";
 
 export default function TeacherHome() {
   const router = useRouter();
@@ -40,20 +41,50 @@ export default function TeacherHome() {
 
       <SectionTitle title="快捷操作" />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
-        {[
-          { icon: "🧩", label: "组卷中心", to: "/compose?mode=paper" },
-          { icon: "🤖", label: "AI 出题", to: "/compose?mode=questions" },
-          { icon: "📮", label: "发布作业", to: "/(teacher)/bank" },
-          { icon: "✍️", label: "去批改", to: "/(teacher)/grading" },
-          { icon: "📖", label: "题库浏览", to: "/bank-questions" },
-          { icon: "🎬", label: "讲解视频", to: "/videos" },
-        ].map((q) => (
-          <Card key={q.label} style={{ width: "30%", alignItems: "center", gap: 6 }} onPress={() => router.push(q.to as any)}>
-            <Text style={{ fontSize: 24 }}>{q.icon}</Text>
-            <Text style={{ color: colors.ink, fontWeight: "600", fontSize: font.sub }}>{q.label}</Text>
-          </Card>
+        {QUICK.map((q) => (
+          <Pressable
+            key={q.label}
+            onPress={() => router.push(q.to as any)}
+            style={({ pressed }) => [qa.tile, pressed && { opacity: 0.85 }]}
+          >
+            <View style={qa.iconWrap}>
+              <Ionicons name={q.icon} size={22} color={colors.brand} />
+            </View>
+            <Text style={qa.label} numberOfLines={1}>{q.label}</Text>
+          </Pressable>
         ))}
       </View>
     </Screen>
   );
 }
+
+const QUICK: { icon: keyof typeof Ionicons.glyphMap; label: string; to: string }[] = [
+  { icon: "albums-outline", label: "组卷中心", to: "/compose?mode=paper" },
+  { icon: "sparkles-outline", label: "AI 出题", to: "/compose?mode=questions" },
+  { icon: "paper-plane-outline", label: "发布作业", to: "/(teacher)/bank" },
+  { icon: "create-outline", label: "去批改", to: "/(teacher)/grading" },
+  { icon: "book-outline", label: "题库浏览", to: "/bank-questions" },
+  { icon: "videocam-outline", label: "讲解视频", to: "/videos" },
+];
+
+const qa = StyleSheet.create({
+  tile: {
+    width: "31%",
+    backgroundColor: colors.card,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: space.md,
+    alignItems: "center",
+    gap: 8,
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brandSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  label: { color: colors.ink, fontWeight: "600", fontSize: font.sub },
+});

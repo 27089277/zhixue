@@ -33,6 +33,7 @@ import {
   seedVideos,
 } from "../data/seed";
 import { preparePapers } from "../lib/papers";
+import type { PracticeWrong } from "../lib/practice";
 import { currentProfile } from "./permissions";
 import { defaultPath, navigateTo } from "../lib/navigation";
 import { readLoginSession } from "../lib/session";
@@ -86,6 +87,8 @@ export interface StoreState {
   knowledge: Knowledge[];
   exam: ExamState;
   submissions: SubmissionRecord[]; // 教师侧全量答卷（全班全卷，从 DB hydrate）
+  myPracticeQuestions: Question[]; // 学生 AI 自练私有题（只本地、不落库、不进公共/老师库）
+  practiceWrong: PracticeWrong[]; // 学生自主/AI 练习错题（本地记录，进错题本）
 
   // actions: session
   login: (role: Role, _method?: LoginMethod, phone?: string) => void;
@@ -108,6 +111,9 @@ export interface StoreState {
   addPaper: (paper: Paper) => void;
   deletePaper: (id: string) => void;
   addQuestions: (questions: Question[]) => void;
+  addMyPracticeQuestions: (questions: Question[]) => void; // 学生私有题：仅本地
+  logPracticeWrong: (w: PracticeWrong) => void;
+  clearPracticeWrong: (key: string) => void;
   updateQuestion: (index: number, patch: Partial<Question>) => void;
   deleteQuestion: (index: number) => void;
   addAssignment: (a: Assignment) => void;
@@ -203,6 +209,8 @@ export const useStore = create<StoreState>()(
       knowledge: seedKnowledge,
       exam: seedExam(),
       submissions: [],
+      myPracticeQuestions: [],
+      practiceWrong: [],
 
       login: (role, _method, phone) => {
         const prev = get().roleProfiles;
@@ -333,6 +341,15 @@ export const useStore = create<StoreState>()(
         questions.forEach(persistQuestion); // 落库 MySQL
         set((s) => ({ questions: [...questions, ...s.questions] }));
       },
+      // 学生 AI 私有题：只进本地 slice，绝不 persistQuestion（不入公共/老师库）
+      addMyPracticeQuestions: (questions) =>
+        set((s) => ({ myPracticeQuestions: [...questions, ...s.myPracticeQuestions] })),
+      logPracticeWrong: (w) =>
+        set((s) => ({
+          practiceWrong: [w, ...s.practiceWrong.filter((x) => x.key !== w.key)].slice(0, 200),
+        })),
+      clearPracticeWrong: (key) =>
+        set((s) => ({ practiceWrong: s.practiceWrong.filter((x) => x.key !== key) })),
       updateQuestion: (index, patch) =>
         set((s) => {
           const questions = s.questions.slice();
@@ -592,6 +609,8 @@ export const useStore = create<StoreState>()(
         dataVersion: DATA_VERSION,
         exam: s.exam,
         activePaperId: s.activePaperId,
+        myPracticeQuestions: s.myPracticeQuestions,
+        practiceWrong: s.practiceWrong,
       }),
       merge: (persisted, current) => {
         const p = persisted as any;
@@ -600,6 +619,8 @@ export const useStore = create<StoreState>()(
           ...current,
           exam: p.exam ?? current.exam,
           activePaperId: p.activePaperId ?? current.activePaperId,
+          myPracticeQuestions: p.myPracticeQuestions ?? current.myPracticeQuestions,
+          practiceWrong: p.practiceWrong ?? current.practiceWrong,
         };
       },
     }

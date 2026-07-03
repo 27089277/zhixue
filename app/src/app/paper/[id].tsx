@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { currentProfile, visibleClasses } from "@/store/permissions";
+import { isPublicRealPaper } from "@/lib/practice";
 import { RichText } from "@/components/RichText";
 import { colors, font, radius, space } from "@/theme/tokens";
 import type { Assignment } from "@/types";
@@ -31,10 +32,26 @@ export default function PaperDetail() {
   const isTeacher = s.role === "teacher";
   const classes = visibleClasses(s);
 
-  const [className, setClassName] = useState(classes[0]?.name || "");
+  // 本卷已发布过的班级：不允许重复发布
+  const publishedClasses = useMemo(
+    () => new Set(s.assignments.filter((a) => a.paperId === id).map((a) => a.className)),
+    [s.assignments, id]
+  );
+
+  const [pickedClasses, setPickedClasses] = useState<string[]>(
+    () => {
+      const first = classes.find((c) => !publishedClasses.has(c.name));
+      return first ? [first.name] : [];
+    }
+  );
   const [deadlineDays, setDeadlineDays] = useState(7);
   const [limit, setLimit] = useState<number | null>(45);
   const [busy, setBusy] = useState(false);
+
+  function toggleClass(name: string) {
+    if (publishedClasses.has(name)) return; // 已发布，禁止选择
+    setPickedClasses((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  }
 
   if (!paper) {
     return (
@@ -43,26 +60,33 @@ export default function PaperDetail() {
   }
 
   function publish() {
-    if (!className) return Alert.alert("提示", "请选择班级");
+    // 二次兜底：剔除已发布班级，杜绝重复发布
+    const targets = pickedClasses.filter((n) => !publishedClasses.has(n));
+    if (!targets.length) {
+      return Alert.alert("无法发布", pickedClasses.length ? "所选班级都已发布过本试卷，请勿重复发布" : "请至少选择一个班级");
+    }
     const d = new Date(Date.now() + deadlineDays * 86400000);
     const deadline = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T22:00`;
-    const a: Assignment = {
-      id: `asg-${Date.now()}`,
-      title: paper!.title,
-      paperId: paper!.id,
-      className,
-      deadline,
-      status: "进行中",
-      createdAt: Date.now(),
-      kind: "作业",
-      mode: "paper",
-      timeLimit: limit,
-      allowRedo: false,
-    };
     setBusy(true);
     try {
-      s.addAssignment(a);
-      Alert.alert("发布成功", `已发布《${paper!.title}》到 ${className}`, [{ text: "好", onPress: () => router.back() }]);
+      // 每个选中的班级各发一份作业，对应班级学生即可看到
+      targets.forEach((className, i) => {
+        const a: Assignment = {
+          id: `asg-${Date.now()}-${i}`,
+          title: paper!.title,
+          paperId: paper!.id,
+          className,
+          deadline,
+          status: "进行中",
+          createdAt: Date.now(),
+          kind: "作业",
+          mode: "paper",
+          timeLimit: limit,
+          allowRedo: false,
+        };
+        s.addAssignment(a); // 本地 + 落库后端，学生 hydrate 后可见
+      });
+      Alert.alert("发布成功", `已发布《${paper!.title}》到 ${targets.join("、")}`, [{ text: "好", onPress: () => router.back() }]);
     } finally {
       setBusy(false);
     }
@@ -82,21 +106,61 @@ export default function PaperDetail() {
           <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 4 }}>
             {paper.subject} · {paper.questions} 题 · {paper.score} 分 · {paper.duration} 分钟
           </Text>
+          {/* 老师：一键设为公共真题（学生「历史真题」页即可练） */}
+          {isTeacher && (
+            isPublicRealPaper(paper) ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 }}>
+                <Ionicons name="earth" size={16} color={colors.brand} />
+                <Text style={{ color: colors.brand, fontWeight: "700", fontSize: font.sub }}>已公开为历史真题（学生可练）</Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => {
+                  const tags = Array.from(new Set([...(paper.tags || []), "真题"]));
+                  s.addPaper({ ...paper, visibility: "public", tags });
+                  Alert.alert("已公开", "本卷已设为「公共历史真题」，学生在真题页即可练习");
+                }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10, alignSelf: "flex-start", borderWidth: 1, borderColor: colors.brand, borderRadius: radius.pill, paddingHorizontal: 14, paddingVertical: 7 }}
+              >
+                <Ionicons name="earth-outline" size={16} color={colors.brand} />
+                <Text style={{ color: colors.brand, fontWeight: "700", fontSize: font.sub }}>设为公共真题</Text>
+              </Pressable>
+            )
+          )}
         </View>
 
         {/* 老师：发布作业 */}
         {isTeacher && (
           <View style={styles.card}>
             <Text style={{ fontWeight: "800", color: colors.ink, marginBottom: 8 }}>发布作业</Text>
-            <Label>班级</Label>
-            <Row>{classes.map((c) => <Chip key={c.name} label={c.name} on={className === c.name} onPress={() => setClassName(c.name)} />)}</Row>
+            <Label>班级（可多选）</Label>
+            {classes.length ? (
+              <Row>
+                {classes.map((c) => {
+                  const done = publishedClasses.has(c.name);
+                  return (
+                    <Chip
+                      key={c.name}
+                      label={done ? `${c.name}（已发布）` : c.name}
+                      on={pickedClasses.includes(c.name)}
+                      disabled={done}
+                      onPress={() => toggleClass(c.name)}
+                    />
+                  );
+                })}
+              </Row>
+            ) : (
+              <Text style={{ color: colors.muted, fontSize: font.sub }}>暂无可发布的班级</Text>
+            )}
             <Label>截止</Label>
             <Row>{DEADLINES.map((d) => <Chip key={d.days} label={d.label} on={deadlineDays === d.days} onPress={() => setDeadlineDays(d.days)} />)}</Row>
             <Label>限时</Label>
             <Row>{LIMITS.map((l) => <Chip key={l.label} label={l.label} on={limit === l.v} onPress={() => setLimit(l.v)} />)}</Row>
-            <Pressable disabled={busy} onPress={publish} style={[styles.pub, busy && { opacity: 0.6 }]}>
+            <Pressable disabled={busy || !pickedClasses.length} onPress={publish} style={[styles.pub, (busy || !pickedClasses.length) && { opacity: 0.6 }]}>
               <Ionicons name="paper-plane" size={18} color="#fff" />
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>发布到班级</Text>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>
+                {pickedClasses.length > 1 ? `发布到 ${pickedClasses.length} 个班级` : "发布到班级"}
+              </Text>
             </Pressable>
           </View>
         )}
@@ -132,10 +196,10 @@ function Label({ children }: { children: React.ReactNode }) {
 function Row({ children }: { children: React.ReactNode }) {
   return <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{children}</View>;
 }
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+function Chip({ label, on, onPress, disabled }: { label: string; on: boolean; onPress: () => void; disabled?: boolean }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn]}>
-      <Text style={{ color: on ? "#fff" : colors.sub, fontSize: font.sub, fontWeight: "600" }}>{label}</Text>
+    <Pressable onPress={onPress} disabled={disabled} style={[styles.chip, on && styles.chipOn, disabled && styles.chipDone]}>
+      <Text style={{ color: on ? "#fff" : disabled ? colors.muted : colors.sub, fontSize: font.sub, fontWeight: "600" }}>{label}</Text>
     </Pressable>
   );
 }
@@ -147,5 +211,6 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: 14, gap: 4 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: radius.pill, backgroundColor: "#fff", borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  chipDone: { backgroundColor: "#f1f4f2", borderColor: colors.line, borderStyle: "dashed" },
   pub: { flexDirection: "row", gap: 8, height: 50, borderRadius: radius.md, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },
 });

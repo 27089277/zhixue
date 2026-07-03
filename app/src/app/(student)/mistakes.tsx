@@ -6,13 +6,27 @@ import { RichText } from "@/components/RichText";
 import { Card, Empty, Screen, SectionTitle, Tag } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
-// 错题本（融合菁优网）：从本人答卷推导错题，展示你的答案/正确答案/解析 + 重做本卷。
+interface WrongRow {
+  key: string;
+  source: string; // 来源标签：试卷标题 / 自主练习 / AI 自练
+  tone: "brand" | "warn" | "muted";
+  stem: string;
+  mine: string;
+  answer: string;
+  analysis?: string;
+  point?: string;
+  redo: () => void;
+}
+
+// 错题本：聚合 ①作业/真题交卷判错 ②自主练习判错 ③AI 自练判错，全部归学生本人。
 export default function Mistakes() {
   const s = useStore();
   const router = useRouter();
-  const wrong = useMemo(() => {
+
+  const rows = useMemo<WrongRow[]>(() => {
+    const out: WrongRow[] = [];
+    // ① 交卷答卷派生（本人）
     const me = s.currentUserPhone;
-    const out: { key: string; paperId: string; paperTitle: string; stem: string; mine: string; answer: string; analysis?: string; point?: string }[] = [];
     s.submissions
       .filter((x) => x.studentPhone === me)
       .forEach((sub) => {
@@ -25,29 +39,47 @@ export default function Mistakes() {
           if (val && String(val).trim() !== String(it.answer).trim()) {
             out.push({
               key: `${sub.id}-${it.no}`,
-              paperId: paper.id,
-              paperTitle: paper.title,
+              source: paper.title,
+              tone: "brand",
               stem: it.title,
               mine: String(val),
               answer: it.answer,
               analysis: it.analysis,
               point: (it.knowledge || [])[0],
+              redo: () => router.push(`/exam/${paper.id}`),
             });
           }
         });
       });
+    // ② / ③ 自主练习 + AI 自练
+    s.practiceWrong.forEach((w) => {
+      out.push({
+        key: w.key,
+        source: w.origin === "student-ai" ? "AI 自练" : "自主练习",
+        tone: w.origin === "student-ai" ? "warn" : "muted",
+        stem: w.stem,
+        mine: w.mine,
+        answer: w.answer,
+        analysis: w.analysis,
+        point: w.point,
+        redo: () =>
+          w.origin === "student-ai"
+            ? router.push("/drill?mine=1")
+            : router.push(`/drill?subject=${encodeURIComponent(w.subject)}&point=${encodeURIComponent(w.point)}`),
+      });
+    });
     return out;
-  }, [s.submissions, s.papers, s.currentUserPhone]);
+  }, [s.submissions, s.papers, s.currentUserPhone, s.practiceWrong, router]);
 
   return (
     <Screen>
-      <SectionTitle title="错题本" extra={<Tag text={`${wrong.length} 题`} tone="warn" />} />
-      {wrong.length ? (
-        wrong.map((w) => (
+      <SectionTitle title="错题本" extra={<Tag text={`${rows.length} 题`} tone="warn" />} />
+      {rows.length ? (
+        rows.map((w) => (
           <Card key={w.key} style={{ gap: 6 }}>
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-              <Text style={{ color: colors.muted, fontSize: font.cap }}>{w.paperTitle}</Text>
-              {w.point ? <Tag text={w.point} /> : null}
+              <Text style={{ color: colors.muted, fontSize: font.cap }} numberOfLines={1}>{w.source}</Text>
+              {w.point ? <Tag text={w.point} tone={w.tone} /> : null}
             </View>
             <RichText html={w.stem} />
             <Text style={{ fontSize: font.sub }}>
@@ -60,13 +92,13 @@ export default function Mistakes() {
                 <RichText html={w.analysis} style={{ fontSize: font.sub }} />
               </View>
             ) : null}
-            <Pressable onPress={() => router.push(`/exam/${w.paperId}`)} style={{ alignSelf: "flex-start" }}>
-              <Text style={{ color: colors.brand, fontWeight: "700", fontSize: font.sub }}>重做本卷 →</Text>
+            <Pressable onPress={w.redo} style={{ alignSelf: "flex-start" }}>
+              <Text style={{ color: colors.brand, fontWeight: "700", fontSize: font.sub }}>重做 →</Text>
             </Pressable>
           </Card>
         ))
       ) : (
-        <Empty text="暂无错题：交卷后做错的客观题会自动收录，可在此重做" />
+        <Empty text="暂无错题：作业/真题交卷、自主练习、AI 自练中做错的题会自动收录" />
       )}
     </Screen>
   );

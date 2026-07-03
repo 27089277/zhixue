@@ -1,7 +1,8 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,22 +10,40 @@ import {
   ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { loadBootstrap } from "../api/bootstrap";
 import { colors, font, radius, shadow, space } from "../theme/tokens";
 
-// 页面容器（安全区 + 灰底 + 可滚动）
+// 页面容器（安全区 + 灰底 + 可滚动）。默认支持下拉刷新：从后端重新拉取，
+// 保证 App 看到的数据与 Web/后端一致（多端同步）。
 export function Screen({
   children,
   scroll = true,
   edges = ["top"],
+  refreshable = true,
 }: {
   children: ReactNode;
   scroll?: boolean;
   edges?: ("top" | "bottom" | "left" | "right")[];
+  refreshable?: boolean;
 }) {
+  const [refreshing, setRefreshing] = useState(false);
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      await loadBootstrap();
+    } finally {
+      setRefreshing(false);
+    }
+  }
   const inner = scroll ? (
     <ScrollView
       contentContainerStyle={{ padding: space.lg, paddingBottom: 40, gap: space.md }}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        refreshable ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} colors={[colors.brand]} />
+        ) : undefined
+      }
     >
       {children}
     </ScrollView>

@@ -9,6 +9,7 @@ import {
   canViewBankAsset,
 } from "../../store/permissions";
 import { aiPost } from "../../api/client";
+import { isPublicRealPaper } from "../../lib/practice";
 import { useNotify } from "../../hooks/useNotify";
 import ComposeCenter from "./ComposeCenter";
 
@@ -119,6 +120,23 @@ export default function PapersPanel() {
                     编辑
                   </button>
                 )}
+                {canOperateBankAsset(s, paper) &&
+                  (isPublicRealPaper(paper) ? (
+                    <span className="pac-public-real" style={{ fontSize: 12, color: "#0c8a5b", alignSelf: "center" }}>
+                      🌐 公共真题
+                    </span>
+                  ) : (
+                    <button
+                      className="ghost small"
+                      onClick={() => {
+                        const tags = Array.from(new Set([...(paper.tags || []), "真题"]));
+                        s.addPaper({ ...paper, visibility: "public", tags });
+                        notify("success", "已设为「公共历史真题」，学生在真题页即可练习");
+                      }}
+                    >
+                      设为公共真题
+                    </button>
+                  ))}
                 {canShareBankAsset(s, paper) && (
                   <button
                     className="ghost small"

@@ -1,21 +1,23 @@
 import { useState } from "react";
 import { useStore } from "../../store/useStore";
 import PaperLibrary from "./PaperLibrary";
+import RealPapers from "./RealPapers";
 import ExamView from "./ExamView";
 import MistakesView from "./MistakesView";
 import DrillView from "./DrillView";
 
-type StudentView = "library" | "mistakes" | "drill";
+type StudentView = "library" | "real" | "mistakes" | "drill";
 
-// 学生端容器：题库/作业 · 错题本 · 专题练习（菁优网式）；答题时全屏 ExamView。
+// 学生端容器：作业 · 历史真题 · 自主练习 · 错题本；答题时全屏 ExamView。
 export default function StudentDock() {
   const mode = useStore((s) => s.exam.mode);
   const examActive = mode === "exam";
   const [view, setView] = useState<StudentView>("library");
 
   const tabs: { key: StudentView; label: string }[] = [
-    { key: "library", label: "作业 / 试卷" },
-    { key: "drill", label: "专题练习" },
+    { key: "library", label: "作业" },
+    { key: "real", label: "历史真题" },
+    { key: "drill", label: "自主练习" },
     { key: "mistakes", label: "错题本" },
   ];
 
@@ -43,6 +45,8 @@ export default function StudentDock() {
               <MistakesView />
             ) : view === "drill" ? (
               <DrillView />
+            ) : view === "real" ? (
+              <RealPapers />
             ) : (
               <PaperLibrary />
             )}

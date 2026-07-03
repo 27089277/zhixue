@@ -5,24 +5,34 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { buildPool } from "@/lib/pool";
+import { publicBankQuestions, publicRealPapers, wrongKey } from "@/lib/practice";
 import { RichText } from "@/components/RichText";
 import { difficultyStars, starText } from "@/lib/difficulty";
 import { colors, font, radius, space } from "@/theme/tokens";
 
 // 专题练习（菁优网式）：按知识点刷题，选项即时判对错 + 看解析。
+// 题源只来自 公共题库 + 公开真题卷 + 学生私有 AI 题；错题写入自己的错题本。
 export default function Drill() {
   const router = useRouter();
-  const { subject, point } = useLocalSearchParams<{ subject?: string; point?: string }>();
+  const { subject, point, mine: mineParam } = useLocalSearchParams<{ subject?: string; point?: string; mine?: string }>();
   const questions = useStore((s) => s.questions);
   const papers = useStore((s) => s.papers);
-  const pool = useMemo(() => buildPool(questions, papers), [questions, papers]);
+  const mine = useStore((s) => s.myPracticeQuestions);
+  const logPracticeWrong = useStore((s) => s.logPracticeWrong);
+  const pool = useMemo(
+    () => buildPool(publicBankQuestions(questions), publicRealPapers(papers), mine),
+    [questions, papers, mine]
+  );
 
   const list = useMemo(
     () =>
       pool.filter(
-        (q) => (!subject || q.subject === subject) && (!point || q.point === point)
+        (q) =>
+          (mineParam ? q.origin === "student-ai" : true) &&
+          (!subject || q.subject === subject) &&
+          (!point || q.point === point)
       ),
-    [pool, subject, point]
+    [pool, subject, point, mineParam]
   );
 
   const [i, setI] = useState(0);
@@ -73,7 +83,27 @@ export default function Drill() {
                 return (
                   <Pressable
                     key={idx}
-                    onPress={() => { if (!revealed) { setPicked(label); setRevealed(true); } }}
+                    onPress={() => {
+                      if (revealed) return;
+                      setPicked(label);
+                      setRevealed(true);
+                      // 判错 → 记入学生自己的错题本
+                      if (String(q.answer).trim() !== label) {
+                        logPracticeWrong({
+                          key: wrongKey(q.subject, q.title),
+                          subject: q.subject,
+                          point: q.point,
+                          type: q.type,
+                          stem: q.title,
+                          choices: q.choices,
+                          mine: label,
+                          answer: String(q.answer || ""),
+                          analysis: q.analysis,
+                          origin: q.origin === "student-ai" ? "student-ai" : "practice",
+                          at: Date.now(),
+                        });
+                      }
+                    }}
                     style={[
                       styles.option,
                       showState && (isCorrect ? styles.ok : styles.bad),

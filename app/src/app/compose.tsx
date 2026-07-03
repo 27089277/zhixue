@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { assemblePaper, generateQuestions } from "@/lib/aiGen";
+import { generateQuestions } from "@/lib/aiGen";
 import { executeSmartAiRequest } from "@/api/ai";
 import { useStore } from "@/store/useStore";
 import { currentProfile, visibleQuestions } from "@/store/permissions";
@@ -26,6 +26,7 @@ export default function Compose() {
   // source: nl=一句话AI / ai=结构化AI / bank=从题库抽题
   const [source, setSource] = useState<"nl" | "ai" | "bank">(isQuestions ? "ai" : "nl");
   const [nlText, setNlText] = useState("");
+  const [title, setTitle] = useState(""); // 用户自定义试卷名称（留空自动命名）
   const [subject, setSubject] = useState("数学");
   const [point, setPoint] = useState("");
   const [type, setType] = useState("单选题");
@@ -45,14 +46,16 @@ export default function Compose() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, s.questions, subject, point, type, diff]);
 
+  const notify = (type: "success" | "error" | "info", msg: string) =>
+    Alert.alert(type === "error" ? "失败" : type === "success" ? "成功" : "提示", msg);
+  const diffWord = diff === "容易" ? "基础" : diff === "较难" ? "较难" : "中档";
+
   async function runNL() {
     if (!nlText.trim()) return Alert.alert("提示", "说一句你的组卷要求，如：出一套初中物理电阻的卷子，6 道单选");
     setBusy(true);
     try {
-      await executeSmartAiRequest(nlText.trim(), {
-        mode: "assemble",
-        notify: (type, msg) => Alert.alert(type === "error" ? "失败" : "提示", msg),
-      });
+      // 与 Web 完全一致：走 executeSmartAiRequest 组卷逻辑；试卷名称可自定义
+      await executeSmartAiRequest(nlText.trim(), { mode: "assemble", title: title.trim() || undefined, notify });
       router.back();
     } finally {
       setBusy(false);
@@ -75,15 +78,14 @@ export default function Compose() {
       }
       return;
     }
-    // 组卷
+    // 组卷（结构化）：与 Web ComposeCenter 一致，拼成一句话交给 executeSmartAiRequest
     if (source === "ai") {
       if (!point.trim()) return Alert.alert("提示", "请输入知识点");
       setBusy(true);
       try {
-        const p = await assemblePaper({ subject, knowledgePoint: point.trim(), type, difficulty: diff, count: n });
-        Alert.alert("组卷成功", `已生成《${p.title}》`, [{ text: "好", onPress: () => router.back() }]);
-      } catch (e: any) {
-        Alert.alert("失败", e?.message || "AI 组卷失败");
+        const query = `生成一套${subject}关于${point.trim()}的测验，共${n}道${type}，${diffWord}`;
+        await executeSmartAiRequest(query, { mode: "assemble", title: title.trim() || undefined, notify });
+        router.back();
       } finally {
         setBusy(false);
       }
@@ -103,16 +105,16 @@ export default function Compose() {
         status: "未答",
       }));
       const score = items.reduce((sum, it) => sum + (Number(it.score) || 0), 0);
-      const title = `${subject}·${point.trim() || "综合"}组卷（${items.length}题）`;
+      const paperTitle = title.trim() || `${subject}·${point.trim() || "综合"}组卷（${items.length}题）`;
       const paper: Paper = {
         id: `bank-paper-${Date.now()}`,
-        title, exam: "题库组卷", subject, region: "校本", year: new Date().getFullYear(),
+        title: paperTitle, exam: "题库组卷", subject, region: "校本", year: new Date().getFullYear(),
         duration: 45, score, questions: items.length, progress: 0, difficulty: diff,
         sections: normalizePaperSections([], items), tags: ["题库抽题", "待校对"],
         visibility: "teacher", owner: currentProfile(s).name, source: "题库抽题组卷", sharedWith: [], items,
       };
       s.addPaper(paper);
-      Alert.alert("组卷成功", `已从题库抽 ${items.length} 题组成《${title}》`, [{ text: "好", onPress: () => router.back() }]);
+      Alert.alert("组卷成功", `已从题库抽 ${items.length} 题组成《${paperTitle}》`, [{ text: "好", onPress: () => router.back() }]);
     }
   }
 
@@ -127,7 +129,7 @@ export default function Compose() {
         {!isQuestions && (
           <View style={styles.seg}>
             {(["nl", "ai", "bank"] as const).map((m) => (
-              <Pressable key={m} onPress={() => setSource(m)} style={[styles.segBtn, source === m && styles.segOn]}>
+              <Pressable key={m} disabled={busy} onPress={() => setSource(m)} style={[styles.segBtn, source === m && styles.segOn]}>
                 <Text style={{ color: source === m ? "#fff" : colors.sub, fontWeight: "700", fontSize: 13 }}>
                   {m === "nl" ? "一句话" : m === "ai" ? "结构化" : "题库抽题"}
                 </Text>
@@ -136,11 +138,24 @@ export default function Compose() {
           </View>
         )}
 
+        {!isQuestions && (
+          <Field label="试卷名称（留空自动命名）">
+            <TextInput
+              style={[styles.input, busy && styles.inputLocked]}
+              editable={!busy}
+              placeholder="如：初三物理·电阻单元测验"
+              value={title}
+              onChangeText={setTitle}
+            />
+          </Field>
+        )}
+
         {!isQuestions && source === "nl" ? (
           <Field label="用一句话描述你要的卷子">
             <TextInput
-              style={[styles.input, { height: 110, textAlignVertical: "top" }]}
+              style={[styles.input, { height: 110, textAlignVertical: "top" }, busy && styles.inputLocked]}
               multiline
+              editable={!busy}
               placeholder="例如：出一套初中物理关于电阻的测验，6 道单选，中档"
               value={nlText}
               onChangeText={setNlText}
@@ -148,14 +163,21 @@ export default function Compose() {
           </Field>
         ) : (
           <>
-        <Field label="学科"><Chips value={subject} onChange={setSubject} options={SUBJECTS} /></Field>
+        <Field label="学科"><Chips value={subject} onChange={setSubject} options={SUBJECTS} disabled={busy} /></Field>
         <Field label={source === "bank" ? "知识点（可留空=全部）" : "知识点"}>
-          <TextInput style={styles.input} placeholder="如：电阻 / 二次函数" value={point} onChangeText={setPoint} />
+          <TextInput style={[styles.input, busy && styles.inputLocked]} editable={!busy} placeholder="如：电阻 / 二次函数" value={point} onChangeText={setPoint} />
         </Field>
-        <Field label="题型"><Chips value={type} onChange={setType} options={TYPES} /></Field>
-        <Field label="难度"><Chips value={diff} onChange={setDiff} options={DIFFS} /></Field>
-        <Field label="题量"><TextInput style={styles.input} keyboardType="number-pad" value={count} onChangeText={setCount} /></Field>
+        <Field label="题型"><Chips value={type} onChange={setType} options={TYPES} disabled={busy} /></Field>
+        <Field label="难度"><Chips value={diff} onChange={setDiff} options={DIFFS} disabled={busy} /></Field>
+        <Field label="题量"><TextInput style={[styles.input, busy && styles.inputLocked]} editable={!busy} keyboardType="number-pad" value={count} onChangeText={setCount} /></Field>
           </>
+        )}
+
+        {busy && (
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <ActivityIndicator color={colors.brand} />
+            <Text style={{ color: colors.sub, fontSize: font.sub }}>AI 正在生成，请稍候…</Text>
+          </View>
         )}
 
         {!isQuestions && source === "bank" && (
@@ -177,13 +199,13 @@ export default function Compose() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <View style={{ gap: 8 }}><Text style={{ fontSize: font.sub, fontWeight: "700", color: colors.sub }}>{label}</Text>{children}</View>;
 }
-function Chips({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
+function Chips({ value, onChange, options, disabled }: { value: string; onChange: (v: string) => void; options: string[]; disabled?: boolean }) {
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       {options.map((o) => {
         const on = o === value;
         return (
-          <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, on && styles.chipOn]}>
+          <Pressable key={o} disabled={disabled} onPress={() => onChange(o)} style={[styles.chip, on && styles.chipOn, disabled && { opacity: 0.5 }]}>
             <Text style={{ color: on ? "#fff" : colors.sub, fontWeight: "600" }}>{o}</Text>
           </Pressable>
         );
@@ -200,6 +222,7 @@ const styles = StyleSheet.create({
   segBtn: { flex: 1, height: 40, borderRadius: radius.sm, alignItems: "center", justifyContent: "center" },
   segOn: { backgroundColor: colors.brand },
   input: { backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: 14, fontSize: font.h3, color: colors.ink },
+  inputLocked: { backgroundColor: "#f1f4f2", color: colors.muted },
   chip: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill, backgroundColor: "#fff", borderWidth: 1, borderColor: colors.line },
   chipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
   go: { flexDirection: "row", gap: 8, height: 52, borderRadius: radius.md, backgroundColor: colors.brand, alignItems: "center", justifyContent: "center" },

@@ -1,8 +1,24 @@
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { Card, Screen, SectionTitle } from "@/components/ui";
 import { colors, font, space } from "@/theme/tokens";
+
+function Row({ icon, title, desc }: { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brandSoft, alignItems: "center", justifyContent: "center" }}>
+        <Ionicons name={icon} size={20} color={colors.brand} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: "700", color: colors.ink }}>{title}</Text>
+        <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>{desc}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+    </View>
+  );
+}
 
 export default function TeacherBank() {
   const router = useRouter();
@@ -21,19 +37,16 @@ export default function TeacherBank() {
         </Card>
       </View>
 
-      <Card onPress={() => router.push("/bank-questions")} style={{ gap: 4 }}>
-        <Text style={{ fontWeight: "700", color: colors.ink }}>📖 题库浏览</Text>
-        <Text style={{ color: colors.sub, fontSize: font.sub }}>按知识点筛选 · 难度星级 · 相似题推荐</Text>
+      <Card onPress={() => router.push("/bank-questions")}>
+        <Row icon="book-outline" title="题库浏览" desc="按知识点筛选 · 难度星级 · 相似题推荐" />
       </Card>
 
       <SectionTitle title="智能生成" />
-      <Card onPress={() => router.push("/compose?mode=paper")} style={{ gap: 4 }}>
-        <Text style={{ fontWeight: "700", color: colors.ink }}>🧩 组卷中心（结构化）</Text>
-        <Text style={{ color: colors.sub, fontSize: font.sub }}>按 知识点 + 题型 + 难度 + 数量 一键组卷</Text>
+      <Card onPress={() => router.push("/compose?mode=paper")}>
+        <Row icon="albums-outline" title="组卷中心（结构化）" desc="按 知识点 + 题型 + 难度 + 数量 一键组卷" />
       </Card>
-      <Card onPress={() => router.push("/compose?mode=questions")} style={{ gap: 4 }}>
-        <Text style={{ fontWeight: "700", color: colors.ink }}>🤖 AI 出题</Text>
-        <Text style={{ color: colors.sub, fontSize: font.sub }}>DeepSeek 生成真题，直接入题库</Text>
+      <Card onPress={() => router.push("/compose?mode=questions")}>
+        <Row icon="sparkles-outline" title="AI 出题" desc="DeepSeek 生成真题，直接入题库" />
       </Card>
 
       <SectionTitle title="试卷库" />

@@ -187,6 +187,7 @@ export interface SmartOptions {
   notify?: Notify;
   onStatus?: (msg: string, busy: boolean) => void;
   signal?: AbortSignal;
+  title?: string; // 用户自定义试卷名称（组卷时优先使用，留空则自动命名）
 }
 
 // 智能 AI 请求：生成题目 / 自动组卷 / 联网导入整卷 / 生成视频脚本。
@@ -286,9 +287,10 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
         query.match(/([一-龥]{2,10})(?:相关|专项|这一?章|这一?节)/)?.[1] ||
         `${intent.subject}综合`;
       const title =
-        point && !point.endsWith("综合")
+        options.title?.trim() ||
+        (point && !point.endsWith("综合")
           ? `${intent.subject}·${point}测验（${count}题）`
-          : `${intent.subject}测验卷（${count}题）`;
+          : `${intent.subject}测验卷（${count}题）`);
       onStatus("DeepSeek 正在生成整卷题目…", true);
       // 直接生成该学科的真实题目组成整卷（不再只出蓝图、不再塞题库）
       const ai = await aiPost("/ai/generate-questions", {

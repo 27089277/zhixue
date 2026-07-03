@@ -11,9 +11,15 @@ export interface PracticeQ {
   answer?: string;
   analysis?: string;
   difficulty?: string;
+  origin?: "bank" | "paper" | "student-ai";
 }
 
-export function buildPool(questions: Question[], papers: Paper[]): PracticeQ[] {
+// 题源：公共题库题 + 公开真题卷题 + 学生私有 AI 题（调用方负责先过滤成"公共"）
+export function buildPool(
+  questions: Question[],
+  papers: Paper[],
+  mine: Question[] = []
+): PracticeQ[] {
   const out: PracticeQ[] = [];
   const seen = new Set<string>();
   const push = (q: PracticeQ) => {
@@ -22,6 +28,21 @@ export function buildPool(questions: Question[], papers: Paper[]): PracticeQ[] {
     seen.add(dedup);
     out.push(q);
   };
+  // 学生私有 AI 题排在最前（最新自练优先）
+  mine.forEach((q, i) =>
+    push({
+      key: `ai-${q.id ?? i}-${i}`,
+      subject: q.subject || "综合",
+      point: q.point || "未分类",
+      type: q.type,
+      title: q.title,
+      choices: q.choices,
+      answer: q.answer,
+      analysis: q.analysis,
+      difficulty: q.difficulty,
+      origin: "student-ai",
+    })
+  );
   questions.forEach((q, i) =>
     push({
       key: `q-${q.id ?? i}`,
@@ -33,6 +54,7 @@ export function buildPool(questions: Question[], papers: Paper[]): PracticeQ[] {
       answer: q.answer,
       analysis: q.analysis,
       difficulty: q.difficulty,
+      origin: "bank",
     })
   );
   papers.forEach((p) =>
@@ -46,6 +68,7 @@ export function buildPool(questions: Question[], papers: Paper[]): PracticeQ[] {
         choices: it.choices,
         answer: it.answer,
         analysis: it.analysis,
+        origin: "paper",
       })
     )
   );

@@ -35,6 +35,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { preparePapers } from "../lib/papers";
 import { currentProfile } from "./permissions";
+import type { PracticeWrong } from "../lib/practice";
 import type { LoginSession } from "../types";
 import {
   persistPaper,
@@ -86,6 +87,8 @@ export interface StoreState {
   knowledge: Knowledge[];
   exam: ExamState;
   submissions: SubmissionRecord[]; // 教师侧全量答卷（全班全卷，从 DB hydrate）
+  myPracticeQuestions: Question[]; // 学生 AI 自练私有题（只本地、不落库、不进公共/老师库）
+  practiceWrong: PracticeWrong[]; // 学生自主/AI 练习错题（本地记录，进错题本）
 
   // actions: session
   login: (role: Role, _method?: LoginMethod, phone?: string) => void;
@@ -109,6 +112,9 @@ export interface StoreState {
   addPaper: (paper: Paper) => void;
   deletePaper: (id: string) => void;
   addQuestions: (questions: Question[]) => void;
+  addMyPracticeQuestions: (questions: Question[]) => void; // 学生私有题：仅本地
+  logPracticeWrong: (w: PracticeWrong) => void; // 记录自主/AI 练习错题
+  clearPracticeWrong: (key: string) => void;
   updateQuestion: (index: number, patch: Partial<Question>) => void;
   deleteQuestion: (index: number) => void;
   addAssignment: (a: Assignment) => void;
@@ -155,6 +161,7 @@ function seedExam(): ExamState {
     currentNo: 1,
     startedAt: null,
     endsAt: null,
+    examPaperId: null,
     answers: {},
     submitted: {},
   };
@@ -189,6 +196,8 @@ export const useStore = create<StoreState>()(
       knowledge: seedKnowledge,
       exam: seedExam(),
       submissions: [],
+      myPracticeQuestions: [],
+      practiceWrong: [],
 
       login: (role, _method, phone) => {
         const prev = get().roleProfiles;
@@ -316,7 +325,16 @@ export const useStore = create<StoreState>()(
             videos: data.videos ?? s.videos,
             knowledge: data.knowledge ?? s.knowledge,
             risk: data.risk ?? s.risk,
-            assignments: data.assignments ?? s.assignments,
+            // 合并而非替换：后端作业 + 本地刚发布（可能尚未回读到）的作业都保留，
+            // 避免老师刚发的作业被一次 hydrate 覆盖掉、学生看不到。
+            assignments: data.assignments
+              ? [
+                  ...data.assignments,
+                  ...s.assignments.filter(
+                    (a) => !data.assignments!.some((d) => d.id === a.id)
+                  ),
+                ]
+              : s.assignments,
             exam,
           };
         }),
@@ -340,6 +358,15 @@ export const useStore = create<StoreState>()(
         questions.forEach(persistQuestion); // 落库 MySQL
         set((s) => ({ questions: [...questions, ...s.questions] }));
       },
+      // 学生 AI 私有题：只进本地 slice，绝不 persistQuestion（不入公共/老师库）
+      addMyPracticeQuestions: (questions) =>
+        set((s) => ({ myPracticeQuestions: [...questions, ...s.myPracticeQuestions] })),
+      logPracticeWrong: (w) =>
+        set((s) => ({
+          practiceWrong: [w, ...s.practiceWrong.filter((x) => x.key !== w.key)].slice(0, 200),
+        })),
+      clearPracticeWrong: (key) =>
+        set((s) => ({ practiceWrong: s.practiceWrong.filter((x) => x.key !== key) })),
       updateQuestion: (index, patch) =>
         set((s) => {
           const questions = s.questions.slice();
@@ -451,18 +478,29 @@ export const useStore = create<StoreState>()(
           const saved = s.exam.answers[paper.id] || {};
           const firstUnanswered =
             paper.items.find((it) => !saved[it.no]?.value)?.no || 1;
+          // 续做同一份卷子：保留原计时（退出期间时间照走），不重置；
+          // 换成另一份卷子或首次进入：才新建计时会话。
+          const resuming = s.exam.examPaperId === paperId && s.exam.startedAt != null;
+          if (resuming) {
+            return {
+              activePaperId: paperId,
+              exam: { ...s.exam, mode: "exam", currentNo: firstUnanswered },
+            };
+          }
           // 作业若设了限时则以其为准；timeLimit=null 表示不限时（无倒计时）
           const assignment = s.assignments.find((a) => a.paperId === paperId);
           const minutes =
             assignment && "timeLimit" in assignment ? assignment.timeLimit : paper.duration;
+          const started = Date.now();
           return {
             activePaperId: paperId,
             exam: {
               ...s.exam,
               mode: "exam",
+              examPaperId: paperId,
               currentNo: firstUnanswered,
-              startedAt: s.exam.startedAt ?? Date.now(),
-              endsAt: minutes ? Date.now() + minutes * 60 * 1000 : null,
+              startedAt: started,
+              endsAt: minutes ? started + minutes * 60 * 1000 : null,
             },
           };
         }),
@@ -599,6 +637,8 @@ export const useStore = create<StoreState>()(
         dataVersion: DATA_VERSION,
         exam: s.exam,
         activePaperId: s.activePaperId,
+        myPracticeQuestions: s.myPracticeQuestions,
+        practiceWrong: s.practiceWrong,
       }),
       merge: (persisted, current) => {
         const p = persisted as any;
@@ -607,6 +647,8 @@ export const useStore = create<StoreState>()(
           ...current,
           exam: p.exam ?? current.exam,
           activePaperId: p.activePaperId ?? current.activePaperId,
+          myPracticeQuestions: p.myPracticeQuestions ?? current.myPracticeQuestions,
+          practiceWrong: p.practiceWrong ?? current.practiceWrong,
         };
       },
     }

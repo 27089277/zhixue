@@ -3,6 +3,8 @@ backend/.env
 server/.env
 **/.env.local
 *.key
+# MCP 配置里含 Figma 访问令牌，切勿提交
+.mcp.json
 
 # ===== Python 后端 =====
 backend/.venv/

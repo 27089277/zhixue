@@ -20,6 +20,10 @@ export default function StudentTabs() {
         options={{ title: "首页", tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} /> }}
       />
       <Tabs.Screen
+        name="real"
+        options={{ title: "真题", tabBarIcon: ({ color, size }) => <Ionicons name="document-text" color={color} size={size} /> }}
+      />
+      <Tabs.Screen
         name="practice"
         options={{ title: "练习", tabBarIcon: ({ color, size }) => <Ionicons name="library" color={color} size={size} /> }}
       />

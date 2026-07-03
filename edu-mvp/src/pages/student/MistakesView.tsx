@@ -38,14 +38,26 @@ export default function MistakesView() {
           }
         });
       });
+    // ② / ③ 自主练习 + AI 自练错题
+    s.practiceWrong.forEach((w) =>
+      out.push({
+        key: w.key,
+        paperTitle: w.origin === "student-ai" ? "AI 自练" : "自主练习",
+        stem: w.stem,
+        mine: w.mine,
+        answer: w.answer,
+        analysis: w.analysis,
+        point: w.point,
+      })
+    );
     return out;
-  }, [s.submissions, s.papers, s.currentUserPhone]);
+  }, [s.submissions, s.papers, s.currentUserPhone, s.practiceWrong]);
 
   return (
     <div className="mistakes-view">
       <div className="student-view-head">
         <h2>错题本</h2>
-        <span className="muted">共 {wrong.length} 题 · 交卷后自动收录</span>
+        <span className="muted">共 {wrong.length} 题 · 作业/真题/自主练习/AI 自练自动收录</span>
       </div>
       {wrong.length ? (
         <div className="mistake-list">
