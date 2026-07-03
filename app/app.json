@@ -41,6 +41,13 @@
       "typedRoutes": true,
       "reactCompiler": true,
       "baseUrl": "/app"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "199fbe0d-8968-4226-a747-84e50ab09554"
+      }
+    },
+    "owner": "leoyuan11"
   }
 }

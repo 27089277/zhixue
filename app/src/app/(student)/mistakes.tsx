@@ -1,16 +1,18 @@
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
 import { Card, Empty, Screen, SectionTitle, Tag } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
-// 错题本（融合菁优网）：从本人答卷推导错题，展示你的答案/正确答案/解析。重做/相似题后续接入。
+// 错题本（融合菁优网）：从本人答卷推导错题，展示你的答案/正确答案/解析 + 重做本卷。
 export default function Mistakes() {
   const s = useStore();
+  const router = useRouter();
   const wrong = useMemo(() => {
     const me = s.currentUserPhone;
-    const out: { key: string; paperTitle: string; stem: string; mine: string; answer: string; analysis?: string; point?: string }[] = [];
+    const out: { key: string; paperId: string; paperTitle: string; stem: string; mine: string; answer: string; analysis?: string; point?: string }[] = [];
     s.submissions
       .filter((x) => x.studentPhone === me)
       .forEach((sub) => {
@@ -23,6 +25,7 @@ export default function Mistakes() {
           if (val && String(val).trim() !== String(it.answer).trim()) {
             out.push({
               key: `${sub.id}-${it.no}`,
+              paperId: paper.id,
               paperTitle: paper.title,
               stem: it.title,
               mine: String(val),
@@ -57,10 +60,13 @@ export default function Mistakes() {
                 <RichText html={w.analysis} style={{ fontSize: font.sub }} />
               </View>
             ) : null}
+            <Pressable onPress={() => router.push(`/exam/${w.paperId}`)} style={{ alignSelf: "flex-start" }}>
+              <Text style={{ color: colors.brand, fontWeight: "700", fontSize: font.sub }}>重做本卷 →</Text>
+            </Pressable>
           </Card>
         ))
       ) : (
-        <Empty text="暂无错题，交卷后自动收录做错的题" />
+        <Empty text="暂无错题：交卷后做错的客观题会自动收录，可在此重做" />
       )}
     </Screen>
   );

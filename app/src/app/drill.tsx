@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
+import { buildPool } from "@/lib/pool";
 import { RichText } from "@/components/RichText";
 import { colors, font, radius, space } from "@/theme/tokens";
 
@@ -11,14 +12,16 @@ import { colors, font, radius, space } from "@/theme/tokens";
 export default function Drill() {
   const router = useRouter();
   const { subject, point } = useLocalSearchParams<{ subject?: string; point?: string }>();
-  const all = useStore((s) => s.questions);
+  const questions = useStore((s) => s.questions);
+  const papers = useStore((s) => s.papers);
+  const pool = useMemo(() => buildPool(questions, papers), [questions, papers]);
 
   const list = useMemo(
     () =>
-      all.filter(
+      pool.filter(
         (q) => (!subject || q.subject === subject) && (!point || q.point === point)
       ),
-    [all, subject, point]
+    [pool, subject, point]
   );
 
   const [i, setI] = useState(0);

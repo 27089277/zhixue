@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Input, Table, Space, Button, Popconfirm, Tree, Tag } from "antd";
+import { Input, Table, Space, Button, Popconfirm, Tree, Tag, Modal, Spin } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useStore } from "../../store/useStore";
 import {
@@ -11,7 +11,9 @@ import {
   visibleQuestions,
 } from "../../store/permissions";
 import { useNotify } from "../../hooks/useNotify";
+import { aiPost } from "../../api/client";
 import { HtmlContent, richTextToPlain } from "../common/RichText";
+import { difficultyStars, starText, difficultyLabel } from "../../lib/difficulty";
 import type { Question } from "../../types";
 
 interface Row extends Question {
@@ -25,6 +27,37 @@ export default function QuestionsTable() {
   const profileName = currentProfile(s).name;
   const [keyword, setKeyword] = useState("");
   const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
+  // 相似题弹窗
+  const [simOpen, setSimOpen] = useState(false);
+  const [simBusy, setSimBusy] = useState(false);
+  const [simBase, setSimBase] = useState<Question | null>(null);
+  const [simList, setSimList] = useState<Question[]>([]);
+
+  async function showSimilar(q: Row) {
+    setSimBase(q);
+    setSimOpen(true);
+    setSimBusy(true);
+    setSimList([]);
+    try {
+      const ai = await aiPost("/ai/search-questions", {
+        query: `${richTextToPlain(q.title)} ${q.point || ""}`.trim(),
+        k: 10,
+      });
+      const ids: string[] = (ai?.result?.ids || []).map(String);
+      let list = s.questions.filter(
+        (x) => x.id != null && ids.includes(String(x.id)) && x !== q
+      );
+      // 向量库无结果时兜底：同知识点其它题
+      if (!list.length) {
+        list = s.questions.filter((x) => x !== q && x.point && x.point === q.point).slice(0, 8);
+      }
+      setSimList(list.slice(0, 8));
+    } catch {
+      setSimList(s.questions.filter((x) => x !== q && x.point === q.point).slice(0, 8));
+    } finally {
+      setSimBusy(false);
+    }
+  }
 
   // 知识点体系树（菁优网式）：学科 → 知识点(题数)
   const knowledgeTree = useMemo(() => {
@@ -115,7 +148,17 @@ export default function QuestionsTable() {
       onFilter: (v, r) => r.type === v,
       render: (t) => <span className="type-pill">{t}</span>,
     },
-    { title: "知识点", dataIndex: "point", key: "point", width: 130 },
+    { title: "知识点", dataIndex: "point", key: "point", width: 120 },
+    {
+      title: "难度",
+      key: "difficulty",
+      width: 110,
+      render: (_, r) => (
+        <span title={difficultyLabel(r.difficulty)} style={{ color: "#f5a623", letterSpacing: 1 }}>
+          {starText(difficultyStars(r.difficulty))}
+        </span>
+      ),
+    },
     {
       title: "库",
       key: "scope",
@@ -167,6 +210,9 @@ export default function QuestionsTable() {
               onClick={() => s.openModal("question", { ...r, index: r.realIndex })}
             >
               {editable ? "编辑" : "查看"}
+            </Button>
+            <Button size="small" type="text" onClick={() => showSimilar(r)}>
+              相似题
             </Button>
             {canShareBankAsset(s, r) && (
               <Button
@@ -271,6 +317,43 @@ export default function QuestionsTable() {
           />
         </div>
       </div>
+
+      <Modal
+        title={`相似题推荐${simBase ? " · " + (simBase.point || "") : ""}`}
+        open={simOpen}
+        onCancel={() => setSimOpen(false)}
+        footer={null}
+        width={640}
+      >
+        {simBusy ? (
+          <div style={{ textAlign: "center", padding: 32 }}><Spin /> 向量库检索中…</div>
+        ) : simList.length ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            {simList.map((q, i) => (
+              <div key={q.id ?? i} style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  <span style={{ color: "#8a978f", fontSize: 12 }}>{q.type} · {q.point}</span>
+                  <span style={{ color: "#f5a623", fontSize: 12 }}>{starText(difficultyStars(q.difficulty))}</span>
+                </div>
+                <HtmlContent html={q.title} />
+                <Button
+                  size="small"
+                  type="link"
+                  style={{ padding: 0 }}
+                  onClick={() => {
+                    setSimOpen(false);
+                    s.openModal("question", { ...q, index: s.questions.indexOf(q) });
+                  }}
+                >
+                  查看
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">未找到相似题（题库题目较少时可先多生成一些）</div>
+        )}
+      </Modal>
     </article>
   );
 }
