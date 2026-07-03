@@ -22,6 +22,7 @@ async function callGen(p: GenParams) {
     question_type: p.type,
     difficulty: p.difficulty,
     count: p.count,
+    notes: `${p.difficulty}难度的${p.subject}「${p.knowledgePoint}」${p.type}，题目要严格贴合该知识点与难度`,
     source_scope: "App 生成",
   });
   return ((ai.result?.questions as any[]) || []).slice(0, p.count);

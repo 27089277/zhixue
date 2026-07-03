@@ -118,6 +118,21 @@ export function parseCount(query: string, def: number): number {
   return def;
 }
 
+// 总题量：把「19道单选题，1道应用」这类多段数量相加（组卷需要正确的总数）。
+export function parseTotalCount(query: string, def: number): number {
+  let total = 0;
+  const re = /(\d+)\s*(?:道|个|题)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(query))) total += Number(m[1]);
+  const cre = /([零一二两三四五六七八九十]+)\s*(?:道|个|题)/g;
+  let cm: RegExpExecArray | null;
+  while ((cm = cre.exec(query))) {
+    const n = cnToNum(cm[1]);
+    if (n && n > 0) total += n;
+  }
+  return total > 0 ? total : def;
+}
+
 // 解析题型：作文/简答/解答/计算/填空/判断/多选/单选
 export function parseQuestionType(query: string): string {
   if (/作文/.test(query)) return "作文题";
@@ -252,6 +267,8 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
         question_type: questionType,
         difficulty: query.includes("较难") ? "较难" : query.includes("基础") ? "容易" : "中等",
         count,
+        grade,
+        notes: query, // 原始一句话，交后端精确贴合学段/难度
         source_scope: source,
       }, options.signal);
       const generated: Question[] = (ai.result.questions || []).map(
@@ -280,7 +297,7 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
       notify("success", `DeepSeek 已生成 ${finalQuestions.length} 道${questionType}，已放入${source}`);
     } else if (intent.isAssemble) {
       const lib = parseTargetLibrary(query);
-      const count = parseCount(query, 10);
+      const count = parseTotalCount(query, 10);
       // 知识点优先取「关于X / X相关 / X专项」，否则退回学科综合（避免把“生成一套初中物理”当成知识点）
       const point =
         query.match(/关于([一-龥]{2,12})/)?.[1] ||
@@ -292,6 +309,7 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
           ? `${intent.subject}·${point}测验（${count}题）`
           : `${intent.subject}测验卷（${count}题）`);
       onStatus("DeepSeek 正在生成整卷题目…", true);
+      const { grade } = parseStageGrade(query);
       // 直接生成该学科的真实题目组成整卷（不再只出蓝图、不再塞题库）
       const ai = await aiPost("/ai/generate-questions", {
         subject: intent.subject,
@@ -299,6 +317,8 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
         question_type: query.includes("解答") ? "解答题" : "单选题",
         difficulty: query.includes("较难") ? "较难" : query.includes("基础") ? "容易" : "中等",
         count,
+        grade,
+        notes: query,
         source_scope: "试卷组卷",
       }, options.signal);
       const items = (ai.result.questions || [])

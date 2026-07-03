@@ -140,19 +140,25 @@ command -v ufw >/dev/null && { ufw allow 22/tcp || true; ufw allow 80/tcp || tru
 LOG "wait app seed"
 for i in $(seq 1 90); do curl -sf http://127.0.0.1:8080/api/bootstrap >/dev/null 2>&1 && { echo "app UP"; break; }; sleep 3; done
 
-LOG "trim to 1 admin/1 teacher/1 student"
-set +e
-# 用手机号(ASCII)删多余用户；班级删后重建，避免中文比较。
-# 关键：mysql 客户端必须 --default-character-set=utf8mb4，否则中文字面量按 latin1 解释会乱码。
-SQL="DELETE FROM app_users WHERE phone IS NULL OR phone NOT IN ('13800000000','13900000000','13700000000');
+# 数据清空仅在显式请求时执行（ZHIXUE_TRIM=1）——否则常规部署不动老师/学生已创建的试卷·作业·题库，
+# 避免每次上线都把数据清空。首次上线或需要干净演示环境时才 ZHIXUE_TRIM=1 ./deploy_server.sh。
+if [ "${ZHIXUE_TRIM:-0}" = "1" ]; then
+  LOG "trim to 1 admin/1 teacher/1 student (ZHIXUE_TRIM=1)"
+  set +e
+  # 用手机号(ASCII)删多余用户；班级删后重建，避免中文比较。
+  # 关键：mysql 客户端必须 --default-character-set=utf8mb4，否则中文字面量按 latin1 解释会乱码。
+  SQL="DELETE FROM app_users WHERE phone IS NULL OR phone NOT IN ('13800000000','13900000000','13700000000');
 DELETE FROM classes;
 INSERT INTO classes (name,count,owner,rate) VALUES ('初三(1)班',1,'张老师',0);
 UPDATE app_users SET class_name='初三(1)班' WHERE phone='13900000000';
 SET FOREIGN_KEY_CHECKS=0;
 TRUNCATE questions;TRUNCATE papers;TRUNCATE assignments;TRUNCATE submissions;TRUNCATE videos;TRUNCATE knowledge;TRUNCATE risks;
 SET FOREIGN_KEY_CHECKS=1;"
-if [ "$DB_MODE" = docker ]; then printf '%s' "$SQL" | docker exec -i "$(docker ps -qf name=mysql)" mysql --default-character-set=utf8mb4 -uroot -proot-change-me zhixue
-else printf '%s' "$SQL" | mysql --default-character-set=utf8mb4 zhixue; fi
-set -e
+  if [ "$DB_MODE" = docker ]; then printf '%s' "$SQL" | docker exec -i "$(docker ps -qf name=mysql)" mysql --default-character-set=utf8mb4 -uroot -proot-change-me zhixue
+  else printf '%s' "$SQL" | mysql --default-character-set=utf8mb4 zhixue; fi
+  set -e
+else
+  LOG "skip data trim (set ZHIXUE_TRIM=1 to reset to clean demo data)"
+fi
 
 LOG "DEPLOY_DONE"

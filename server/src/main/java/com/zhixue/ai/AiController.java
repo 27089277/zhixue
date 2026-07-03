@@ -75,13 +75,27 @@ public class AiController {
         String type = str(b, "question_type", "单选题");
         String difficulty = str(b, "difficulty", "中等");
         int count = intv(b, "count", 6);
-        String sys = "你是资深中学" + subject + "老师，只输出 JSON 对象。";
-        String user = "请生成 " + count + " 道关于「" + point + "」的" + subject + type + "，难度" + difficulty +
-                "。返回 JSON：{\"questions\":[{\"stem\":\"题干\",\"type\":\"" + type +
+        String grade = str(b, "grade", "");   // 学段/年级，如「小学三年级」「初二」；空则不限定
+        String notes = str(b, "notes", "");    // 老师/学生的原始一句话要求，用于精确贴合难度与范围
+        String forWhom = grade.isEmpty() ? "" : ("面向" + grade + "学生的");
+        String sys = "你是资深" + subject + "老师，严格按老师要求出题，题目难度和范围务必贴合指定学段与知识点，只输出 JSON 对象。";
+        String user = "请严格生成正好 " + count + " 道" + forWhom + "关于「" + point + "」的" + subject + type + "，难度" + difficulty + "。"
+                + (notes.isEmpty() ? "" : ("老师的原话要求：" + notes + "。请完全按此理解难度与范围。"))
+                + "特别注意：题目要严格贴合上述学段与知识点，不得超纲复杂化——例如「小学十以内加减法」就只出「3+2=?」「7-4=?」这类简单直白的题；"
+                + "必须正好 " + count + " 道，不能多也不能少。返回 JSON：{\"questions\":[{\"stem\":\"题干\",\"type\":\"" + type +
                 "\",\"options\":[\"A选项\",\"B选项\",\"C选项\",\"D选项\"],\"standard_answer\":\"答案\",\"analysis\":\"解析\",\"knowledge_points\":[\"" + point +
                 "\"],\"score\":4,\"difficulty\":\"" + difficulty + "\"}]}。填空/解答题 options 用空数组。";
         JsonNode r = deepseek.completeJson(sys, user);
-        if (r != null && r.has("questions")) return wrap(r, false);
+        if (r != null && r.has("questions") && r.get("questions").isArray()) {
+            // 严格对齐数量：多则裁剪（少则原样返回，前端会提示）
+            ArrayNode src = (ArrayNode) r.get("questions");
+            if (src.size() > count && r instanceof ObjectNode) {
+                ArrayNode trimmed = m.createArrayNode();
+                for (int i = 0; i < count; i++) trimmed.add(src.get(i));
+                ((ObjectNode) r).set("questions", trimmed);
+            }
+            return wrap(r, false);
+        }
         // 兜底
         ObjectNode res = m.createObjectNode();
         ArrayNode qs = res.putArray("questions");

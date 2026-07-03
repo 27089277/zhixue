@@ -2,7 +2,7 @@
 // 但生成的题**只属于学生本人、只存本地**（visibility=private, origin=student-ai），
 // 不 persistQuestion、不进公共/老师题库。错题走学生自己的错题本。
 import { aiPost } from "../api/client";
-import { parseCount, parseQuestionType, parseSmartIntent } from "../api/ai";
+import { parseCount, parseQuestionType, parseSmartIntent, parseStageGrade } from "../api/ai";
 import { useStore } from "../store/useStore";
 import { currentProfile } from "../store/permissions";
 import { aiQuestionToPaperItem, normalizePaperSections } from "./papers";
@@ -34,6 +34,7 @@ export async function generateStudentPractice(
     ? "容易"
     : "中等";
 
+  const { grade } = parseStageGrade(query);
   const ai = await aiPost(
     "/ai/generate-questions",
     {
@@ -42,6 +43,8 @@ export async function generateStudentPractice(
       question_type: type,
       difficulty,
       count,
+      grade,
+      notes: query,
       source_scope: "学生自练",
     },
     signal
