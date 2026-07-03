@@ -33,6 +33,10 @@ export default function RootLayout() {
       // 拉取后端真实目录（非阻塞）
       loadBootstrap();
     })();
+    // Web：注册 PWA service worker（可安装 + 离线壳）
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/app/sw.js", { scope: "/app/" }).catch(() => {});
+    }
   }, []);
 
   if (!ready) return null; // 启动图保持

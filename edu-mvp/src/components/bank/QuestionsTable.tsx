@@ -72,6 +72,7 @@ export default function QuestionsTable() {
       title: "题目",
       dataIndex: "title",
       key: "title",
+      width: 320,
       render: (_, r) => (
         <div className="question-title-cell">
           <div className="question-title-rich">
@@ -259,6 +260,7 @@ export default function QuestionsTable() {
             columns={columns}
             dataSource={rows}
             size="middle"
+            scroll={{ x: 1180 }}
             pagination={{
               pageSize: 5,
               hideOnSinglePage: false,

@@ -39,7 +39,14 @@ cd /opt/zhixue/src/edu-mvp
 npm ci --no-audit --no-fund
 npm run build
 rm -rf /opt/zhixue/web && mkdir -p /opt/zhixue/web && cp -r dist/* /opt/zhixue/web/
-# 手机 App(app/) 为独立原生产物(EAS 出包)，不部署到网页主站
+
+LOG "build app PWA (Expo web → /app，可安装到手机主屏)"
+cd /opt/zhixue/src/app
+npm ci --no-audit --no-fund
+EXPO_PUBLIC_API_BASE=/api npx expo export -p web --output-dir dist-web
+rm -rf /opt/zhixue/appweb && mkdir -p /opt/zhixue/appweb && cp -r dist-web/* /opt/zhixue/appweb/
+# output:single 不走 +html，构建后注入 PWA 头
+sed -i 's@</head>@<link rel="manifest" href="/app/manifest.webmanifest"><meta name="theme-color" content="#0c8a5b"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="智学云教"><link rel="apple-touch-icon" href="/app/apple-touch-icon.png"></head>@' /opt/zhixue/appweb/index.html || true
 
 LOG "build backend"
 cd /opt/zhixue/src/server
@@ -113,6 +120,12 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_read_timeout 180s;
     }
+    # 手机 App（Expo PWA，可添加到主屏）
+    location /app/ {
+        alias /opt/zhixue/appweb/;
+        try_files $uri $uri/ /app/index.html;
+    }
+    location = /app { return 301 /app/; }
     # 主站 = AntD 完整网页版
     location / { try_files $uri $uri/ /index.html; }
 }
