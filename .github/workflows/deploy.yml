@@ -1,0 +1,30 @@
+name: Deploy to server
+
+# push 到 main 且改动了前端/后端/App/部署脚本时，自动 SSH 到服务器拉取构建部署
+on:
+  push:
+    branches: [main]
+    paths:
+      - "edu-mvp/**"
+      - "app/**"
+      - "server/**"
+      - "deploy/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH 触发服务器部署
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          command_timeout: 40m
+          script: |
+            echo "${{ secrets.SERVER_PASSWORD }}" | sudo -S bash -c '
+              curl -fsSL https://raw.githubusercontent.com/27089277/zhixue/main/deploy/deploy_server.sh -o /root/dep.sh &&
+              bash /root/dep.sh
+            '
