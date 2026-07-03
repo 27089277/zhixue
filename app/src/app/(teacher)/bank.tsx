@@ -39,7 +39,7 @@ export default function TeacherBank() {
       <SectionTitle title="试卷库" />
       {s.papers.length ? (
         s.papers.slice(0, 12).map((p) => (
-          <Card key={p.id} onPress={() => router.push(`/exam/${p.id}`)}>
+          <Card key={p.id} onPress={() => router.push(`/paper/${p.id}`)}>
             <Text style={{ fontWeight: "700", color: colors.ink }}>{p.title}</Text>
             <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>
               {p.subject} · {p.questions} 题 · {p.score} 分

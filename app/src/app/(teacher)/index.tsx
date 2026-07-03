@@ -39,19 +39,20 @@ export default function TeacherHome() {
       </View>
 
       <SectionTitle title="快捷操作" />
-      <View style={{ flexDirection: "row", gap: space.md }}>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/compose?mode=paper")}>
-          <Text style={{ fontSize: 24 }}>🧩</Text>
-          <Text style={{ color: colors.ink, fontWeight: "600" }}>组卷中心</Text>
-        </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/compose?mode=questions")}>
-          <Text style={{ fontSize: 24 }}>🤖</Text>
-          <Text style={{ color: colors.ink, fontWeight: "600" }}>AI 出题</Text>
-        </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/videos")}>
-          <Text style={{ fontSize: 24 }}>🎬</Text>
-          <Text style={{ color: colors.ink, fontWeight: "600" }}>讲解视频</Text>
-        </Card>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
+        {[
+          { icon: "🧩", label: "组卷中心", to: "/compose?mode=paper" },
+          { icon: "🤖", label: "AI 出题", to: "/compose?mode=questions" },
+          { icon: "📮", label: "发布作业", to: "/(teacher)/bank" },
+          { icon: "✍️", label: "去批改", to: "/(teacher)/grading" },
+          { icon: "📖", label: "题库浏览", to: "/bank-questions" },
+          { icon: "🎬", label: "讲解视频", to: "/videos" },
+        ].map((q) => (
+          <Card key={q.label} style={{ width: "30%", alignItems: "center", gap: 6 }} onPress={() => router.push(q.to as any)}>
+            <Text style={{ fontSize: 24 }}>{q.icon}</Text>
+            <Text style={{ color: colors.ink, fontWeight: "600", fontSize: font.sub }}>{q.label}</Text>
+          </Card>
+        ))}
       </View>
     </Screen>
   );

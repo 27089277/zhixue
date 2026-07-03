@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { assemblePaper, generateQuestions } from "@/lib/aiGen";
+import { executeSmartAiRequest } from "@/api/ai";
 import { useStore } from "@/store/useStore";
 import { currentProfile, visibleQuestions } from "@/store/permissions";
 import { normalizePaperSections } from "@/lib/papers";
@@ -22,8 +23,9 @@ export default function Compose() {
   const { mode: initMode } = useLocalSearchParams<{ mode?: string }>();
   const isQuestions = initMode === "questions";
 
-  // source: ai=AI生成新题 / bank=从题库抽题（仅组卷模式可选）
-  const [source, setSource] = useState<"ai" | "bank">("ai");
+  // source: nl=一句话AI / ai=结构化AI / bank=从题库抽题
+  const [source, setSource] = useState<"nl" | "ai" | "bank">(isQuestions ? "ai" : "nl");
+  const [nlText, setNlText] = useState("");
   const [subject, setSubject] = useState("数学");
   const [point, setPoint] = useState("");
   const [type, setType] = useState("单选题");
@@ -43,7 +45,22 @@ export default function Compose() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, s.questions, subject, point, type, diff]);
 
+  async function runNL() {
+    if (!nlText.trim()) return Alert.alert("提示", "说一句你的组卷要求，如：出一套初中物理电阻的卷子，6 道单选");
+    setBusy(true);
+    try {
+      await executeSmartAiRequest(nlText.trim(), {
+        mode: "assemble",
+        notify: (type, msg) => Alert.alert(type === "error" ? "失败" : "提示", msg),
+      });
+      router.back();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function run() {
+    if (!isQuestions && source === "nl") return runNL();
     const n = Number(count) || 6;
     if (isQuestions) {
       if (!point.trim()) return Alert.alert("提示", "请输入知识点");
@@ -109,15 +126,28 @@ export default function Compose() {
       <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.lg, paddingBottom: 40 }}>
         {!isQuestions && (
           <View style={styles.seg}>
-            {(["ai", "bank"] as const).map((m) => (
+            {(["nl", "ai", "bank"] as const).map((m) => (
               <Pressable key={m} onPress={() => setSource(m)} style={[styles.segBtn, source === m && styles.segOn]}>
-                <Text style={{ color: source === m ? "#fff" : colors.sub, fontWeight: "700" }}>
-                  {m === "ai" ? "AI 生成新题" : "从题库抽题"}
+                <Text style={{ color: source === m ? "#fff" : colors.sub, fontWeight: "700", fontSize: 13 }}>
+                  {m === "nl" ? "一句话" : m === "ai" ? "结构化" : "题库抽题"}
                 </Text>
               </Pressable>
             ))}
           </View>
         )}
+
+        {!isQuestions && source === "nl" ? (
+          <Field label="用一句话描述你要的卷子">
+            <TextInput
+              style={[styles.input, { height: 110, textAlignVertical: "top" }]}
+              multiline
+              placeholder="例如：出一套初中物理关于电阻的测验，6 道单选，中档"
+              value={nlText}
+              onChangeText={setNlText}
+            />
+          </Field>
+        ) : (
+          <>
         <Field label="学科"><Chips value={subject} onChange={setSubject} options={SUBJECTS} /></Field>
         <Field label={source === "bank" ? "知识点（可留空=全部）" : "知识点"}>
           <TextInput style={styles.input} placeholder="如：电阻 / 二次函数" value={point} onChangeText={setPoint} />
@@ -125,6 +155,8 @@ export default function Compose() {
         <Field label="题型"><Chips value={type} onChange={setType} options={TYPES} /></Field>
         <Field label="难度"><Chips value={diff} onChange={setDiff} options={DIFFS} /></Field>
         <Field label="题量"><TextInput style={styles.input} keyboardType="number-pad" value={count} onChangeText={setCount} /></Field>
+          </>
+        )}
 
         {!isQuestions && source === "bank" && (
           <Text style={{ color: colors.sub, fontSize: font.sub }}>
@@ -134,7 +166,7 @@ export default function Compose() {
         <Pressable disabled={busy} onPress={run} style={[styles.go, busy && { opacity: 0.6 }]}>
           <Ionicons name={source === "bank" ? "albums" : "sparkles"} size={18} color="#fff" />
           <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>
-            {busy ? "处理中…" : isQuestions ? "生成题目" : source === "bank" ? "从题库组卷" : "AI 一键组卷"}
+            {busy ? "处理中…" : isQuestions ? "生成题目" : source === "bank" ? "从题库组卷" : source === "nl" ? "一句话组卷" : "AI 一键组卷"}
           </Text>
         </Pressable>
       </ScrollView>
