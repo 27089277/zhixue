@@ -6,5 +6,7 @@ export default function Index() {
   const authed = useStore((s) => s.authed);
   const role = useStore((s) => s.role);
   if (!authed) return <Redirect href="/login" />;
-  return <Redirect href={role === "student" ? "/(student)" : "/(teacher)"} />;
+  if (role === "student") return <Redirect href="/(student)" />;
+  if (role === "admin") return <Redirect href="/(admin)" />;
+  return <Redirect href="/(teacher)" />;
 }

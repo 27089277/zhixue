@@ -26,7 +26,7 @@ export default function Login() {
       const role = account.roles[0];
       login(role, "sms", phone);
       await saveLoginSession(role, "sms", useStore.getState().roleProfiles[role], phone);
-      router.replace(role === "student" ? "/(student)" : "/(teacher)");
+      router.replace(role === "student" ? "/(student)" : role === "admin" ? "/(admin)" : "/(teacher)");
     } finally {
       setBusy(false);
     }

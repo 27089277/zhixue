@@ -25,19 +25,19 @@ export default function StudentHome() {
         <Text style={{ color: colors.sub, fontSize: font.sub }}>{me.scope}</Text>
       </View>
 
-      {/* 快捷入口（融合菁优网：专题/组卷刷题） */}
+      {/* 快捷入口 */}
       <View style={{ flexDirection: "row", gap: space.md }}>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/(student)/practice")}>
           <Text style={{ fontSize: 24 }}>📚</Text>
           <Text style={{ color: colors.ink, fontWeight: "600" }}>知识点练习</Text>
         </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
-          <Text style={{ fontSize: 24 }}>📝</Text>
-          <Text style={{ color: colors.ink, fontWeight: "600" }}>我的作业</Text>
-        </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/(student)/mistakes")}>
           <Text style={{ fontSize: 24 }}>❌</Text>
           <Text style={{ color: colors.ink, fontWeight: "600" }}>错题重做</Text>
+        </Card>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/videos")}>
+          <Text style={{ fontSize: 24 }}>🎬</Text>
+          <Text style={{ color: colors.ink, fontWeight: "600" }}>讲解视频</Text>
         </Card>
       </View>
 

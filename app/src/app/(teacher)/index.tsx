@@ -1,10 +1,12 @@
 import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useStore } from "@/store/useStore";
 import { currentProfile, visibleClasses } from "@/store/permissions";
 import { Card, Screen, SectionTitle } from "@/components/ui";
 import { colors, font, space } from "@/theme/tokens";
 
 export default function TeacherHome() {
+  const router = useRouter();
   const s = useStore();
   const me = currentProfile(s);
   const classes = visibleClasses(s);
@@ -38,17 +40,17 @@ export default function TeacherHome() {
 
       <SectionTitle title="快捷操作" />
       <View style={{ flexDirection: "row", gap: space.md }}>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/compose?mode=paper")}>
           <Text style={{ fontSize: 24 }}>🧩</Text>
           <Text style={{ color: colors.ink, fontWeight: "600" }}>组卷中心</Text>
         </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/compose?mode=questions")}>
           <Text style={{ fontSize: 24 }}>🤖</Text>
           <Text style={{ color: colors.ink, fontWeight: "600" }}>AI 出题</Text>
         </Card>
-        <Card style={{ flex: 1, alignItems: "center", gap: 6 }}>
-          <Text style={{ fontSize: 24 }}>✍️</Text>
-          <Text style={{ color: colors.ink, fontWeight: "600" }}>去批改</Text>
+        <Card style={{ flex: 1, alignItems: "center", gap: 6 }} onPress={() => router.push("/videos")}>
+          <Text style={{ fontSize: 24 }}>🎬</Text>
+          <Text style={{ color: colors.ink, fontWeight: "600" }}>讲解视频</Text>
         </Card>
       </View>
     </Screen>

@@ -56,6 +56,9 @@ export default function RootLayout() {
           <Stack.Screen name="grade/[id]" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="compose" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="drill" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="(admin)" />
+          <Stack.Screen name="bank-questions" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="videos" options={{ animation: "slide_from_right" }} />
         </Stack>
         </WebFrame>
       </SafeAreaProvider>

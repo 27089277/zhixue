@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { buildPool } from "@/lib/pool";
 import { RichText } from "@/components/RichText";
+import { difficultyStars, starText } from "@/lib/difficulty";
 import { colors, font, radius, space } from "@/theme/tokens";
 
 // 专题练习（菁优网式）：按知识点刷题，选项即时判对错 + 看解析。
@@ -56,7 +57,10 @@ export default function Drill() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: space.lg, gap: space.md, paddingBottom: 40 }}>
-          <Text style={{ color: colors.muted, fontSize: font.cap }}>{q.type} · {q.point}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Text style={{ color: colors.muted, fontSize: font.cap }}>{q.type} · {q.point}</Text>
+            <Text style={{ color: colors.star, fontSize: font.cap }}>{starText(difficultyStars(q.difficulty))}</Text>
+          </View>
           <RichText html={q.title} style={{ fontSize: font.h3 }} />
 
           {(q.choices || []).length ? (

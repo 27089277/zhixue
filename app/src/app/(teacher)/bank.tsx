@@ -21,6 +21,11 @@ export default function TeacherBank() {
         </Card>
       </View>
 
+      <Card onPress={() => router.push("/bank-questions")} style={{ gap: 4 }}>
+        <Text style={{ fontWeight: "700", color: colors.ink }}>📖 题库浏览</Text>
+        <Text style={{ color: colors.sub, fontSize: font.sub }}>按知识点筛选 · 难度星级 · 相似题推荐</Text>
+      </Card>
+
       <SectionTitle title="智能生成" />
       <Card onPress={() => router.push("/compose?mode=paper")} style={{ gap: 4 }}>
         <Text style={{ fontWeight: "700", color: colors.ink }}>🧩 组卷中心（结构化）</Text>
