@@ -3,7 +3,7 @@
     "name": "智学云教",
     "slug": "zhixue",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "zhixue",
     "userInterfaceStyle": "light",
@@ -50,9 +50,12 @@
       [
         "expo-build-properties",
         {
-          "android": { "usesCleartextTraffic": true }
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,

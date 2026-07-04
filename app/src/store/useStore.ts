@@ -69,6 +69,7 @@ export interface StoreState {
   loginMethod: LoginMethod;
   aiMode: string;
   aiBusy: boolean;
+  soundEnabled: boolean; // 音效开关（可在「我的」里关闭）
   selectedQuestions: number;
   activePaperId: string;
   paperFilters: PaperFilters;
@@ -99,6 +100,7 @@ export interface StoreState {
   setBankView: (view: BankView) => void;
   setAiMode: (mode: string) => void;
   setAiBusy: (busy: boolean) => void;
+  setSoundEnabled: (v: boolean) => void;
   setSelectedQuestions: (n: number) => void;
   setActivePaper: (id: string) => void;
   setPaperFilters: (patch: Partial<PaperFilters>) => void;
@@ -179,6 +181,7 @@ export const useStore = create<StoreState>()(
       loginMethod: "sms",
       aiMode: "auto",
       aiBusy: false,
+      soundEnabled: true,
       selectedQuestions: 2,
       activePaperId: "p-demo-dl",
       paperFilters: { type: "all", search: "", year: "", region: "" },
@@ -261,6 +264,7 @@ export const useStore = create<StoreState>()(
       setBankView: (bankView) => set({ bankView }),
       setAiMode: (aiMode) => set({ aiMode }),
       setAiBusy: (aiBusy) => set({ aiBusy }),
+      setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
       setSelectedQuestions: (selectedQuestions) => set({ selectedQuestions }),
       setActivePaper: (activePaperId) => set({ activePaperId }),
       setPaperFilters: (patch) =>
@@ -639,6 +643,7 @@ export const useStore = create<StoreState>()(
         activePaperId: s.activePaperId,
         myPracticeQuestions: s.myPracticeQuestions,
         practiceWrong: s.practiceWrong,
+        soundEnabled: s.soundEnabled,
       }),
       merge: (persisted, current) => {
         const p = persisted as any;
@@ -649,6 +654,7 @@ export const useStore = create<StoreState>()(
           activePaperId: p.activePaperId ?? current.activePaperId,
           myPracticeQuestions: p.myPracticeQuestions ?? current.myPracticeQuestions,
           practiceWrong: p.practiceWrong ?? current.practiceWrong,
+          soundEnabled: typeof p.soundEnabled === "boolean" ? p.soundEnabled : current.soundEnabled,
         };
       },
     }

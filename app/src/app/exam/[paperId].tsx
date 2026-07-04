@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
 import { Handwriting, parseStrokes, serializeStrokes } from "@/components/Handwriting";
+import { playSfx } from "@/lib/sound";
 import { colors, font, radius, space } from "@/theme/tokens";
 
 function fmt(ms: number) {
@@ -68,6 +69,7 @@ export default function ExamScreen() {
   function doSubmit(auto = false) {
     const submit = () => {
       s.submitPaper(paper!.id);
+      playSfx("submit");
       router.replace(`/result/${paper!.id}`);
     };
     if (auto) return submit();

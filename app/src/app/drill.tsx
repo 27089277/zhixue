@@ -8,6 +8,7 @@ import { buildPool } from "@/lib/pool";
 import { publicBankQuestions, publicRealPapers, wrongKey } from "@/lib/practice";
 import { RichText } from "@/components/RichText";
 import { difficultyStars, starText } from "@/lib/difficulty";
+import { playSfx } from "@/lib/sound";
 import { colors, font, radius, space } from "@/theme/tokens";
 
 // 专题练习（菁优网式）：按知识点刷题，选项即时判对错 + 看解析。
@@ -87,8 +88,10 @@ export default function Drill() {
                       if (revealed) return;
                       setPicked(label);
                       setRevealed(true);
+                      const right = String(q.answer).trim() === label;
+                      playSfx(right ? "correct" : "wrong");
                       // 判错 → 记入学生自己的错题本
-                      if (String(q.answer).trim() !== label) {
+                      if (!right) {
                         logPracticeWrong({
                           key: wrongKey(q.subject, q.title),
                           subject: q.subject,

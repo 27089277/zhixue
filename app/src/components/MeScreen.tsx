@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Switch, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
@@ -30,6 +30,21 @@ export default function MeScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: font.h2, fontWeight: "800", color: colors.ink }}>{me.name}</Text>
             <Text style={{ color: colors.sub, fontSize: font.sub }}>{me.scope}</Text>
+          </View>
+        </View>
+      </Card>
+
+      <SectionTitle title="设置" />
+      <Card>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 }}>
+          <Ionicons name="volume-high-outline" size={18} color={colors.muted} />
+          <Text style={{ color: colors.sub, fontSize: font.sub }}>音效</Text>
+          <View style={{ marginLeft: "auto" }}>
+            <Switch
+              value={s.soundEnabled}
+              onValueChange={s.setSoundEnabled}
+              trackColor={{ true: colors.brand, false: "#ccd6d1" }}
+            />
           </View>
         </View>
       </Card>
