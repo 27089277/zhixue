@@ -98,7 +98,7 @@ export default function ExamView() {
           </div>
 
           <div>
-            {current.type === "单选题" ? (
+            {current.type === "单选题" || current.type === "判断题" ? (
               <div className="exam-options">
                 {(current.choices || []).map((choice, index) => {
                   const value = String.fromCharCode(65 + index);
@@ -111,6 +111,26 @@ export default function ExamView() {
                         checked={savedValue === value}
                         onChange={() => setAnswer(value)}
                       />
+                      <b>{value}</b>
+                      <HtmlContent html={choice} />
+                    </label>
+                  );
+                })}
+              </div>
+            ) : current.type === "多选题" ? (
+              <div className="exam-options">
+                <div className="exam-answer-hint">多选题 · 可选多个选项</div>
+                {(current.choices || []).map((choice, index) => {
+                  const value = String.fromCharCode(65 + index);
+                  const checked = savedValue.includes(value);
+                  const toggle = () => {
+                    const set = new Set(savedValue.split("").filter(Boolean));
+                    set.has(value) ? set.delete(value) : set.add(value);
+                    setAnswer(Array.from(set).sort().join(""));
+                  };
+                  return (
+                    <label key={value}>
+                      <input type="checkbox" checked={checked} onChange={toggle} />
                       <b>{value}</b>
                       <HtmlContent html={choice} />
                     </label>

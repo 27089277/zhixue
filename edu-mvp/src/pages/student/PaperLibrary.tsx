@@ -1,9 +1,12 @@
 import { useStore } from "../../store/useStore";
+import { visibleClasses } from "../../store/permissions";
 import StudentMessages from "./StudentMessages";
 
-// 学生「作业」页：只展示老师发布给本人的作业（历史真题独立到 RealPapers）。
+// 学生「作业」页：只展示发布给本班的作业（历史真题独立到 RealPapers）。
 export default function PaperLibrary() {
   const s = useStore();
+  const classNames = new Set(visibleClasses(s).map((c) => c.name));
+  const myAssignments = s.assignments.filter((a) => !a.className || classNames.has(a.className));
 
   function openStart(paperId: string) {
     const result = s.exam.submitted[paperId];
@@ -25,8 +28,8 @@ export default function PaperLibrary() {
           </div>
         </div>
         <div className="assignment-list">
-          {s.assignments.length ? (
-            s.assignments.map((assignment) => {
+          {myAssignments.length ? (
+            myAssignments.map((assignment) => {
               const paper = s.papers.find((p) => p.id === assignment.paperId);
               const result = s.exam.submitted[assignment.paperId];
               const needsRedo = result?.returned;

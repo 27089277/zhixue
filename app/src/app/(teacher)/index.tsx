@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
-import { currentProfile, visibleClasses } from "@/store/permissions";
+import { currentProfile, visibleClasses, visibleQuestions } from "@/store/permissions";
 import { Card, Screen, SectionTitle } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
@@ -11,16 +11,19 @@ export default function TeacherHome() {
   const s = useStore();
   const me = currentProfile(s);
   const classes = visibleClasses(s);
+  const classNames = new Set(classes.map((c) => c.name));
   const studentCount = classes.reduce((n, c) => n + c.count, 0);
-  const paperIds = new Set(s.assignments.map((a) => a.paperId));
-  const teacherSubs = s.submissions.filter((x) => paperIds.has(x.paperId));
-  const pending = teacherSubs.filter((x) => !x.gradedAt).length;
+  // 口径与对应页面一致：待批改=批改队列全部未批；进行中作业=作业完成情况(本班·进行中)；题库=可见题
+  const pending = s.submissions.filter((x) => !x.gradedAt).length;
+  const activeAssignments = s.assignments.filter(
+    (a) => (!a.status || a.status === "进行中") && (!a.className || classNames.has(a.className))
+  ).length;
 
   const kpis: { label: string; value: number; to?: string }[] = [
     { label: "待批改", value: pending, to: "/(teacher)/grading" },
-    { label: "进行中作业", value: s.assignments.length, to: "/assignments" },
+    { label: "进行中作业", value: activeAssignments, to: "/assignments" },
     { label: "我的学生", value: studentCount },
-    { label: "题库题量", value: s.questions.length, to: "/(teacher)/bank" },
+    { label: "题库题量", value: visibleQuestions(s).length, to: "/(teacher)/bank" },
   ];
 
   return (

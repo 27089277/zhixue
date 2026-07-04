@@ -34,7 +34,7 @@ export default function ResultScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={["top"]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.replace("/(student)")} hitSlop={10}>
+        <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(student)"))} hitSlop={10}>
           <Ionicons name="chevron-back" size={26} color={colors.ink} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{paper.title}</Text>

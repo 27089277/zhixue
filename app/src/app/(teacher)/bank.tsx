@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
+import { visibleQuestions } from "@/store/permissions";
 import { Card, Screen, SectionTitle } from "@/components/ui";
 import { colors, font, space } from "@/theme/tokens";
 
@@ -28,7 +29,7 @@ export default function TeacherBank() {
       <SectionTitle title="题库 / 试卷" />
       <View style={{ flexDirection: "row", gap: space.md }}>
         <Card style={{ flex: 1 }}>
-          <Text style={{ fontSize: 24, fontWeight: "800", color: colors.brand }}>{s.questions.length}</Text>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: colors.brand }}>{visibleQuestions(s).length}</Text>
           <Text style={{ color: colors.sub, fontSize: font.sub }}>题目</Text>
         </Card>
         <Card style={{ flex: 1 }}>

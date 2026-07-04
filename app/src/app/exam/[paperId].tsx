@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -29,6 +29,13 @@ export default function ExamScreen() {
   const paper = useMemo(() => s.papers.find((p) => p.id === paperId), [s.papers, paperId]);
 
   useEffect(() => {
+    // 已被老师批改且未退回重做的卷：不再进入答题，直接看结果（避免重做覆盖批改/批注）
+    const sub = s.exam.submitted[paperId];
+    const asg = s.assignments.find((a) => a.paperId === paperId);
+    if (sub?.gradedAt && !sub.returned && !asg?.allowRedo) {
+      router.replace(`/result/${paperId}`);
+      return;
+    }
     if (paperId) s.startPaper(paperId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paperId]);
@@ -66,8 +73,11 @@ export default function ExamScreen() {
     s.selectQuestion(n);
   }
 
+  const submittedRef = useRef(false);
   function doSubmit(auto = false) {
     const submit = () => {
+      if (submittedRef.current) return; // 防止到点计时反复触发交卷
+      submittedRef.current = true;
       s.submitPaper(paper!.id);
       playSfx("submit");
       router.replace(`/result/${paper!.id}`);
@@ -121,11 +131,21 @@ export default function ExamScreen() {
         {/* 选择题 */}
         {(item.type === "单选题" || item.type === "多选题" || item.type === "判断题") && (item.choices || []).length > 0 ? (
           <View style={{ gap: 10, marginTop: 4 }}>
+            {item.type === "多选题" ? (
+              <Text style={{ color: colors.brand, fontSize: font.cap }}>多选题 · 可选多个选项</Text>
+            ) : null}
             {(item.choices || []).map((c, i) => {
               const label = String.fromCharCode(65 + i);
-              const selected = val === label;
+              const isMulti = item.type === "多选题";
+              const selected = isMulti ? val.includes(label) : val === label;
+              const onPick = () => {
+                if (!isMulti) return setVal(label);
+                const set = new Set(val.split("").filter(Boolean));
+                set.has(label) ? set.delete(label) : set.add(label);
+                setVal(Array.from(set).sort().join(""));
+              };
               return (
-                <Pressable key={i} onPress={() => setVal(label)} style={[styles.option, selected && styles.optionSel]}>
+                <Pressable key={i} onPress={onPick} style={[styles.option, selected && styles.optionSel]}>
                   <View style={[styles.optBadge, selected && styles.optBadgeSel]}>
                     <Text style={{ color: selected ? "#fff" : colors.sub, fontWeight: "700" }}>{label}</Text>
                   </View>

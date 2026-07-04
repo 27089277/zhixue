@@ -43,7 +43,10 @@ export default function GradeScreen() {
     const annotations: Record<number, string> = { ...(record!.annotations || {}) };
     subjective.forEach((it) => {
       const h = annoRefs.current[it.no];
-      if (h && !h.isBlank()) annotations[it.no] = serializeStrokes(h.strokes());
+      if (!h) return;
+      // 支持擦除：批注被清空则删除，不再保留旧红笔
+      if (h.isBlank()) delete annotations[it.no];
+      else annotations[it.no] = serializeStrokes(h.strokes());
     });
     setBusy(true);
     try {

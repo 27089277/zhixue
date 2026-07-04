@@ -1,6 +1,20 @@
 // 试卷/题目处理工具，移植自 legacy app.js (601-703)，并包含 preparePapers 归一化修复。
 import type { Paper, PaperItem, Question } from "../types";
 
+// 客观题判分：多选题按「字母集合(无序)」比对；其余按去空白全等。
+export function isObjectiveCorrect(type: string, answerKey?: string, value?: string): boolean {
+  const a = String(value ?? "").trim();
+  const key = String(answerKey ?? "").trim();
+  if (!a) return false;
+  if (type === "多选题") {
+    const norm = (s: string) =>
+      s.toUpperCase().replace(/[^A-Z]/g, "").split("").sort().join("");
+    const na = norm(a);
+    return na !== "" && na === norm(key);
+  }
+  return a === key;
+}
+
 export function stripChoiceLabel(value: unknown): string {
   return String(value ?? "")
     .replace(/^[A-H][.、．]\s*/i, "")

@@ -183,6 +183,7 @@ export interface ExamState {
   currentNo: number;
   startedAt: number | null;
   endsAt: number | null;
+  examPaperId?: string | null; // 当前计时会话所属试卷（重开续时用）
   answers: Record<string, Record<number, AnswerEntry>>;
   submitted: Record<string, SubmittedResult>;
 }

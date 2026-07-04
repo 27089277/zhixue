@@ -57,8 +57,9 @@ export default function Compose() {
     setBusy(true);
     try {
       // 与 Web 完全一致：走 executeSmartAiRequest 组卷逻辑；试卷名称可自定义
+      const before = useStore.getState().papers.length;
       await executeSmartAiRequest(nlText.trim(), { mode: "assemble", title: title.trim() || undefined, notify });
-      goBank();
+      if (useStore.getState().papers.length > before) goBank(); // 成功生成才回题库，失败则留在原页（错误已提示）
     } finally {
       setBusy(false);
     }
@@ -86,8 +87,9 @@ export default function Compose() {
       setBusy(true);
       try {
         const query = `生成一套${subject}关于${point.trim()}的测验，共${n}道${type}，${diffWord}`;
+        const before = useStore.getState().papers.length;
         await executeSmartAiRequest(query, { mode: "assemble", title: title.trim() || undefined, notify });
-        goBank();
+        if (useStore.getState().papers.length > before) goBank();
       } finally {
         setBusy(false);
       }

@@ -5,6 +5,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { buildPool } from "@/lib/pool";
+import { isObjectiveCorrect } from "@/lib/papers";
 import { publicBankQuestions, publicRealPapers, wrongKey } from "@/lib/practice";
 import { RichText } from "@/components/RichText";
 import { difficultyStars, starText } from "@/lib/difficulty";
@@ -37,18 +38,41 @@ export default function Drill() {
   );
 
   const [i, setI] = useState(0);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string>("");
   const [revealed, setRevealed] = useState(false);
   const q = list[i];
+  const isMulti = q?.type === "多选题";
 
   function reset() {
-    setPicked(null);
+    setPicked("");
     setRevealed(false);
   }
   function next() {
     if (i < list.length - 1) {
       setI(i + 1);
       reset();
+    }
+  }
+
+  // 判分（单选即时；多选点「对答案」后判）→ 判错写入错题本
+  function judge(finalPicked: string) {
+    setRevealed(true);
+    const right = isObjectiveCorrect(q.type, q.answer, finalPicked);
+    playSfx(right ? "correct" : "wrong");
+    if (!right) {
+      logPracticeWrong({
+        key: wrongKey(q.subject, q.title),
+        subject: q.subject,
+        point: q.point,
+        type: q.type,
+        stem: q.title,
+        choices: q.choices,
+        mine: finalPicked,
+        answer: String(q.answer || ""),
+        analysis: q.analysis,
+        origin: q.origin === "student-ai" ? "student-ai" : "practice",
+        at: Date.now(),
+      });
     }
   }
 
@@ -76,39 +100,29 @@ export default function Drill() {
 
           {(q.choices || []).length ? (
             <View style={{ gap: 10 }}>
+              {isMulti ? <Text style={{ color: colors.brand, fontSize: font.cap }}>多选题 · 可选多个，选好点「对答案」</Text> : null}
               {(q.choices || []).map((c, idx) => {
                 const label = String.fromCharCode(65 + idx);
-                const isCorrect = String(q.answer).trim() === label;
-                const sel = picked === label;
+                const isCorrect = String(q.answer).toUpperCase().includes(label);
+                const sel = picked.includes(label);
                 const showState = revealed && (isCorrect || sel);
                 return (
                   <Pressable
                     key={idx}
                     onPress={() => {
                       if (revealed) return;
-                      setPicked(label);
-                      setRevealed(true);
-                      const right = String(q.answer).trim() === label;
-                      playSfx(right ? "correct" : "wrong");
-                      // 判错 → 记入学生自己的错题本
-                      if (!right) {
-                        logPracticeWrong({
-                          key: wrongKey(q.subject, q.title),
-                          subject: q.subject,
-                          point: q.point,
-                          type: q.type,
-                          stem: q.title,
-                          choices: q.choices,
-                          mine: label,
-                          answer: String(q.answer || ""),
-                          analysis: q.analysis,
-                          origin: q.origin === "student-ai" ? "student-ai" : "practice",
-                          at: Date.now(),
-                        });
+                      if (isMulti) {
+                        const set = new Set(picked.split("").filter(Boolean));
+                        set.has(label) ? set.delete(label) : set.add(label);
+                        setPicked(Array.from(set).sort().join(""));
+                      } else {
+                        setPicked(label);
+                        judge(label);
                       }
                     }}
                     style={[
                       styles.option,
+                      !revealed && sel && styles.optionSel,
                       showState && (isCorrect ? styles.ok : styles.bad),
                     ]}
                   >
@@ -120,6 +134,11 @@ export default function Drill() {
                   </Pressable>
                 );
               })}
+              {isMulti && !revealed ? (
+                <Pressable onPress={() => judge(picked)} disabled={!picked} style={[styles.revealBtn, !picked && { opacity: 0.5 }]}>
+                  <Text style={{ color: colors.brand, fontWeight: "700" }}>对答案</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : (
             <Pressable onPress={() => setRevealed(true)} style={styles.revealBtn}>
@@ -138,9 +157,15 @@ export default function Drill() {
 
       {q ? (
         <View style={styles.footer}>
-          <Pressable onPress={next} disabled={i >= list.length - 1} style={[styles.nextBtn, i >= list.length - 1 && { opacity: 0.5 }]}>
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>下一题</Text>
-          </Pressable>
+          {i >= list.length - 1 ? (
+            <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(student)/practice" as any))} style={styles.nextBtn}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>完成练习</Text>
+            </Pressable>
+          ) : (
+            <Pressable onPress={next} style={styles.nextBtn}>
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: font.h3 }}>下一题</Text>
+            </Pressable>
+          )}
         </View>
       ) : null}
     </SafeAreaView>
@@ -152,6 +177,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: space.lg, paddingVertical: 10 },
   headerTitle: { flex: 1, fontSize: font.h3, fontWeight: "700", color: colors.ink },
   option: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#fff", borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: 14 },
+  optionSel: { borderColor: colors.brand, backgroundColor: colors.brandSoft },
   ok: { borderColor: colors.ok, backgroundColor: colors.brandSoft },
   bad: { borderColor: colors.danger, backgroundColor: "#fdecea" },
   badge: { width: 30, height: 30, borderRadius: 15, backgroundColor: "#eef2f0", alignItems: "center", justifyContent: "center" },

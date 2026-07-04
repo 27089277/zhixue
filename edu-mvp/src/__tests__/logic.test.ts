@@ -11,6 +11,7 @@ import {
   publicRealPapers,
   isPublicRealPaper,
 } from "../lib/practice";
+import { isObjectiveCorrect } from "../lib/papers";
 import { difficultyStars, starText, difficultyLabel } from "../lib/difficulty";
 import type { Paper, Question } from "../types";
 
@@ -100,6 +101,30 @@ describe("练习题源规则", () => {
     ];
     const out = publicRealPapers(list).map((p) => p.id);
     expect(out).toEqual(["a"]);
+  });
+});
+
+// ---- 客观题判分（含多选无序比对）----
+describe("isObjectiveCorrect", () => {
+  it("单选/判断：去空白全等", () => {
+    expect(isObjectiveCorrect("单选题", "B", "B")).toBe(true);
+    expect(isObjectiveCorrect("单选题", "B", " b ")).toBe(false); // 大小写敏感、单选不做集合
+    expect(isObjectiveCorrect("判断题", "A", "A")).toBe(true);
+  });
+  it("填空：全等", () => {
+    expect(isObjectiveCorrect("填空题", "42", "42")).toBe(true);
+    expect(isObjectiveCorrect("填空题", "42", "43")).toBe(false);
+  });
+  it("多选：字母集合无序比对", () => {
+    expect(isObjectiveCorrect("多选题", "AC", "CA")).toBe(true);
+    expect(isObjectiveCorrect("多选题", "AC", "A,C")).toBe(true);
+    expect(isObjectiveCorrect("多选题", "ABD", "ABD")).toBe(true);
+    expect(isObjectiveCorrect("多选题", "AC", "A")).toBe(false); // 漏选
+    expect(isObjectiveCorrect("多选题", "AC", "ABC")).toBe(false); // 多选
+  });
+  it("空作答判错", () => {
+    expect(isObjectiveCorrect("单选题", "A", "")).toBe(false);
+    expect(isObjectiveCorrect("多选题", "AC", "")).toBe(false);
   });
 });
 

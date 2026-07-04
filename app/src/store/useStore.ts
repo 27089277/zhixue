@@ -33,7 +33,7 @@ import {
   seedVideos,
 } from "../data/seed";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { preparePapers } from "../lib/papers";
+import { preparePapers, isObjectiveCorrect } from "../lib/papers";
 import { currentProfile } from "./permissions";
 import type { PracticeWrong } from "../lib/practice";
 import type { LoginSession } from "../types";
@@ -291,7 +291,7 @@ export const useStore = create<StoreState>()(
           let exam = s.exam;
           let submissions = s.submissions;
           if (Array.isArray(data.submissions)) {
-            submissions = data.submissions
+            const fromDb = data.submissions
               .filter((sub: any) => sub?.paperId)
               .map((sub: any) => ({
                 id: sub.id || `${sub.paperId}__${sub.studentPhone || "anon"}`,
@@ -311,6 +311,9 @@ export const useStore = create<StoreState>()(
                 studentPhone: sub.studentPhone ?? undefined,
                 annotations: sub.annotations ?? undefined,
               }));
+            // 合并：保留本地刚提交、后端尚未回读到的答卷（否则交卷后一次刷新会短暂丢失，错题本闪空）
+            const dbIds = new Set(fromDb.map((x) => x.id));
+            submissions = [...fromDb, ...s.submissions.filter((x) => !dbIds.has(x.id))];
             // 仅把「当前登录用户自己」的答卷回填到 exam（教师的 exam 不被全班污染）
             const answers = { ...s.exam.answers };
             const submitted = { ...s.exam.submitted };
@@ -557,12 +560,11 @@ export const useStore = create<StoreState>()(
           paper.items.forEach((it) => {
             if (it.type === "解答题") return;
             objectiveTotal += it.score;
-            if (
-              String(answers[it.no]?.value || "").trim() ===
-              String(it.answer).trim()
-            )
+            if (isObjectiveCorrect(it.type, it.answer, answers[it.no]?.value))
               score += it.score;
           });
+          const id = `${paperId}__${s.currentUserPhone || "anon"}`;
+          const prev = s.submissions.find((x) => x.id === id);
           const result = {
             score,
             objectiveTotal,
@@ -571,12 +573,22 @@ export const useStore = create<StoreState>()(
             pendingManual: paper.items.filter((it) => it.type === "解答题").length,
             studentName: currentProfile(s).name,
             studentPhone: s.currentUserPhone,
+            // 重做/重交不覆盖老师已批改结果：保留 finalScore/评语/批注/批改时间
+            ...(prev?.gradedAt
+              ? {
+                  finalScore: prev.finalScore,
+                  manualScore: prev.manualScore,
+                  feedback: prev.feedback,
+                  gradedAt: prev.gradedAt,
+                  returned: prev.returned,
+                  annotations: prev.annotations,
+                }
+              : {}),
           };
           const submitted = { ...s.exam.submitted, [paperId]: result };
           const papers = s.papers.map((p) =>
             p.id === paperId ? { ...p, progress: 100 } : p
           );
-          const id = `${paperId}__${s.currentUserPhone || "anon"}`;
           const paperAnswers = s.exam.answers[paperId] || {};
           // 落库 MySQL（含手写作答答案引用）
           persistSubmission({ id, paperId, ...result, answers: paperAnswers });

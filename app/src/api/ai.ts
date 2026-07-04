@@ -294,6 +294,9 @@ export async function executeSmartAiRequest(query: string, options: SmartOptions
           origin: "AI 生成",
           answer: item.standard_answer || item.answer,
           analysis: item.analysis,
+          difficulty:
+            item.difficulty ||
+            (query.includes("较难") ? "较难" : query.includes("基础") ? "容易" : "中等"),
           choices: Array.isArray(item.options) && item.options.length ? item.options : undefined,
           sharedWith: [],
         })
