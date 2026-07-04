@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useStore } from "@/store/useStore";
 import { RichText } from "@/components/RichText";
 import { Handwriting, HandwritingRef, isHandwriting, parseStrokes, serializeStrokes } from "@/components/Handwriting";
+import { isObjectiveCorrect } from "@/lib/papers";
 import { Card } from "@/components/ui";
 import { colors, font, radius, space } from "@/theme/tokens";
 
@@ -75,17 +76,38 @@ export default function GradeScreen() {
           </Text>
         </Card>
 
-        {subjective.length ? (
-          subjective.map((it) => (
+        {/* 老师查看整份学生答卷：客观题自动判对错，主观题手写批注 */}
+        {paper.items.map((it) => {
+          const val = answerOf(it.no);
+          const isSubjective = it.type === "解答题";
+          const answered = val != null && String(val).trim() !== "";
+          const right = !isSubjective && isObjectiveCorrect(it.type, it.answer, val);
+          const handwritten = isHandwriting(val);
+          return (
             <Card key={it.no} style={{ gap: 6 }}>
-              <Text style={{ fontWeight: "800", color: colors.ink }}>第 {it.no} 题 · {it.score} 分</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontWeight: "800", color: colors.ink }}>第 {it.no} 题 · {it.type} · {it.score} 分</Text>
+                {isSubjective ? (
+                  <Text style={{ color: colors.warn, fontSize: font.cap, fontWeight: "700" }}>主观·待批</Text>
+                ) : !answered ? (
+                  <Text style={{ color: colors.muted, fontSize: font.cap, fontWeight: "700" }}>未作答</Text>
+                ) : (
+                  <Text style={{ color: right ? colors.ok : colors.danger, fontSize: font.cap, fontWeight: "800" }}>
+                    {right ? "✓ 正确" : "✕ 错误"}
+                  </Text>
+                )}
+              </View>
               <RichText html={it.title} />
-              {isHandwriting(answerOf(it.no)) ? (
+              {(it.choices || []).map((c, i) => (
+                <Text key={i} style={{ color: colors.sub, fontSize: font.sub }}>{String.fromCharCode(65 + i)}. {c.replace(/<[^>]+>/g, "")}</Text>
+              ))}
+
+              {isSubjective && handwritten ? (
                 <View style={{ gap: 6 }}>
                   <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>学生手写作答上批注（红笔）</Text>
                   <Handwriting
                     ref={(h) => { annoRefs.current[it.no] = h; }}
-                    background={parseStrokes(answerOf(it.no))}
+                    background={parseStrokes(val)}
                     initial={parseStrokes(record.annotations?.[it.no])}
                     penColor={colors.danger}
                     height={220}
@@ -94,15 +116,16 @@ export default function GradeScreen() {
               ) : (
                 <View style={styles.ans}>
                   <Text style={{ color: colors.sub, fontSize: font.cap, fontWeight: "700" }}>学生作答</Text>
-                  <Text style={{ color: colors.ink, fontSize: font.sub, marginTop: 2 }}>{answerOf(it.no) || "未作答"}</Text>
+                  <Text style={{ color: answered ? colors.ink : colors.muted, fontSize: font.sub, marginTop: 2 }}>
+                    {answered ? String(val) : "未作答"}
+                  </Text>
                 </View>
               )}
               {it.answer ? <Text style={{ color: colors.ok, fontSize: font.sub }}>参考答案：{it.answer}</Text> : null}
+              {it.analysis ? <Text style={{ color: colors.sub, fontSize: font.cap }}>解析：{it.analysis.replace(/<[^>]+>/g, "")}</Text> : null}
             </Card>
-          ))
-        ) : (
-          <Card><Text style={{ color: colors.muted }}>本卷无主观题，客观题已自动判分。</Text></Card>
-        )}
+          );
+        })}
 
         <Text style={styles.label}>主观题得分（满分 {maxManual}）</Text>
         <TextInput style={styles.input} keyboardType="number-pad" value={score} onChangeText={setScore} />

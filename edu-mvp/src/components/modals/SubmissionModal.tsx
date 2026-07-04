@@ -5,6 +5,7 @@ import { useNotify } from "../../hooks/useNotify";
 import { HtmlContent } from "../common/RichText";
 import HandwritingCanvas, { type HandwritingHandle } from "../common/HandwritingCanvas";
 import { uploadMedia } from "../../api/client";
+import { isObjectiveCorrect } from "../../lib/papers";
 
 const isImg = (v?: string) =>
   !!v && (v.startsWith("/api/media/") || v.startsWith("data:image"));
@@ -98,13 +99,35 @@ export default function SubmissionModal() {
       }
     >
       <div className="submission-list">
-        {subjective.map((item) => {
+        {paper.items.map((item) => {
           const val = answerValue(item.no);
+          const isSubjective = item.type === "解答题";
+          const answered = val != null && String(val).trim() !== "";
+          const right = !isSubjective && isObjectiveCorrect(item.type, item.answer, val);
           return (
             <article key={item.no}>
-              <strong>第 {item.no} 题 · {item.score} 分</strong>
+              <strong>
+                第 {item.no} 题 · {item.type} · {item.score} 分{" "}
+                {isSubjective ? (
+                  <em className="muted">主观 · 待批</em>
+                ) : !answered ? (
+                  <em className="muted">未作答</em>
+                ) : (
+                  <em style={{ color: right ? "#0c8a5b" : "#e3342f", fontStyle: "normal" }}>{right ? "✓ 正确" : "✕ 错误"}</em>
+                )}
+              </strong>
               <HtmlContent html={item.title} />
-              {readOnly ? (
+              {(item.choices || []).map((c, i) => (
+                <div key={i} className="muted" style={{ fontSize: 13 }}>
+                  {String.fromCharCode(65 + i)}. <HtmlContent html={c} />
+                </div>
+              ))}
+              {!isSubjective ? (
+                <div className="student-answer">
+                  学生作答：{answered ? val : "未作答"}
+                  {item.answer ? `　参考答案：${item.answer}` : ""}
+                </div>
+              ) : readOnly ? (
                 // 查看：直接展示已保存的批注图（含红笔），无则显示学生原作答
                 isImg(record?.annotations?.[item.no]) || isImg(val) ? (
                   <div className="anno-block">
