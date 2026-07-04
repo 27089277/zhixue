@@ -66,14 +66,26 @@ export function Card({
   style?: ViewStyle;
   onPress?: () => void;
 }) {
-  const body = <View style={[styles.card, style]}>{children}</View>;
-  if (onPress)
+  if (onPress) {
+    // 关键：把「尺寸/布局」类样式(宽度/flex/外边距)放到可点击外层，视觉样式留在内层卡片——
+    // 否则 width:"47%" 会相对被内容撑开的 Pressable 计算，导致工作台栅格错乱。
+    const st = (style || {}) as any;
+    const {
+      width, height, flex, flexBasis, flexGrow, flexShrink, alignSelf,
+      margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
+      ...visual
+    } = st;
+    const outer = {
+      width, height, flex, flexBasis, flexGrow, flexShrink, alignSelf,
+      margin, marginTop, marginBottom, marginLeft, marginRight, marginHorizontal, marginVertical,
+    };
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}>
-        {body}
+      <Pressable onPress={onPress} style={({ pressed }) => [outer, { opacity: pressed ? 0.85 : 1 }]}>
+        <View style={[styles.card, visual]}>{children}</View>
       </Pressable>
     );
-  return body;
+  }
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function SectionTitle({ title, extra }: { title: string; extra?: ReactNode }) {

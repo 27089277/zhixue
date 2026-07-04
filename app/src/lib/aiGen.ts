@@ -25,7 +25,10 @@ async function callGen(p: GenParams) {
     notes: `${p.difficulty}难度的${p.subject}「${p.knowledgePoint}」${p.type}，题目要严格贴合该知识点与难度`,
     source_scope: "App 生成",
   });
-  return ((ai.result?.questions as any[]) || []).slice(0, p.count);
+  const list = ((ai.result?.questions as any[]) || []).slice(0, p.count);
+  // DeepSeek 失败：后端返回空 + error，不入库、直接报错
+  if (!list.length) throw new Error(ai.result?.error || "AI 没有返回题目，请稍后重试");
+  return list;
 }
 
 // 组卷：生成整卷并写入试卷库
@@ -60,7 +63,7 @@ export async function assemblePaper(p: GenParams): Promise<Paper> {
   return paper;
 }
 
-// 出题：生成题目写入题库
+// 出题：生成题目（不自动入库，返回给老师预览，确认后再 addQuestions）
 export async function generateQuestions(p: GenParams): Promise<Question[]> {
   const store = useStore.getState();
   const raw = await callGen(p);
@@ -76,10 +79,9 @@ export async function generateQuestions(p: GenParams): Promise<Question[]> {
     origin: "AI 生成",
     answer: it.standard_answer || it.answer,
     analysis: it.analysis,
+    difficulty: it.difficulty || p.difficulty,
     choices: Array.isArray(it.options) && it.options.length ? it.options : undefined,
     sharedWith: [],
   }));
-  if (!questions.length) throw new Error("AI 没有返回题目");
-  store.addQuestions(questions);
   return questions;
 }

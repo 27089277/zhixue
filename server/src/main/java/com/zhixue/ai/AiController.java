@@ -96,23 +96,10 @@ public class AiController {
             }
             return wrap(r, false);
         }
-        // 兜底
+        // DeepSeek 不可用/无返回：不再编造占位题，返回空 + 错误，前端据此提示失败、不入库。
         ObjectNode res = m.createObjectNode();
-        ArrayNode qs = res.putArray("questions");
-        for (int i = 1; i <= count; i++) {
-            ObjectNode q = qs.addObject();
-            q.put("stem", point + " 练习题 " + i + "（示例）");
-            q.put("type", type);
-            ArrayNode opts = q.putArray("options");
-            if (type.contains("单选") || type.contains("多选")) {
-                opts.add("选项 A"); opts.add("选项 B"); opts.add("选项 C"); opts.add("选项 D");
-            }
-            q.put("standard_answer", type.contains("解答") ? "主观题" : "A");
-            q.put("analysis", "示例解析，DeepSeek 未配置或不可用时的占位。");
-            q.putArray("knowledge_points").add(point);
-            q.put("score", type.contains("解答") ? 10 : 4);
-            q.put("difficulty", difficulty);
-        }
+        res.putArray("questions");
+        res.put("error", "AI 暂时不可用，请稍后重试");
         return wrap(res, true);
     }
 
@@ -158,25 +145,10 @@ public class AiController {
                 "\"questions\":[{\"number\":1,\"type\":\"单选题\",\"stem\":\"题干\",\"options\":[\"A\",\"B\",\"C\",\"D\"],\"standard_answer\":\"A\",\"analysis\":\"解析\",\"score\":4,\"knowledge_points\":[]}]}。至少 " + Math.min(count, 8) + " 题。";
         JsonNode r = deepseek.completeJson(sys, user);
         if (r != null && r.has("questions")) return wrap(r, false);
+        // DeepSeek 不可用：不编造占位真题，返回空 + 错误，前端提示失败。
         ObjectNode res = m.createObjectNode();
-        ObjectNode paper = res.putObject("paper");
-        paper.put("title", title); paper.put("subject", subject); paper.put("exam_type", exam);
-        paper.put("region", region); paper.put("year", year); paper.put("total_score", total);
-        paper.put("duration_minutes", 100);
-        ArrayNode qs = res.putArray("questions");
-        int n = Math.min(Math.max(count, 1), 12);
-        for (int i = 1; i <= n; i++) {
-            ObjectNode q = qs.addObject();
-            q.put("number", i);
-            q.put("type", i <= 6 ? "单选题" : i <= 10 ? "填空题" : "解答题");
-            q.put("stem", title + " 第 " + i + " 题（示例，DeepSeek 未配置）");
-            ArrayNode opts = q.putArray("options");
-            if (i <= 6) { opts.add("A"); opts.add("B"); opts.add("C"); opts.add("D"); }
-            q.put("standard_answer", i <= 6 ? "A" : i <= 10 ? "示例" : "主观题");
-            q.put("analysis", "示例解析");
-            q.put("score", i <= 6 ? 4 : i <= 10 ? 6 : 12);
-            q.putArray("knowledge_points");
-        }
+        res.putArray("questions");
+        res.put("error", "AI 暂时不可用，请稍后重试");
         return wrap(res, true);
     }
 

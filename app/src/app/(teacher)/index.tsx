@@ -36,7 +36,7 @@ export default function TeacherHome() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
         {kpis.map((k) => (
           <Card key={k.label} style={{ width: "47%" }} onPress={k.to ? () => router.push(k.to as any) : undefined}>
-            <Text style={{ fontSize: 26, fontWeight: "800", color: colors.brand }}>{k.value}</Text>
+            <Text style={{ fontSize: font.h1 + 4, fontWeight: "800", color: colors.brand }}>{k.value}</Text>
             <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>{k.label}</Text>
           </Card>
         ))}

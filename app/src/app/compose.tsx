@@ -72,8 +72,10 @@ export default function Compose() {
       if (!point.trim()) return Alert.alert("提示", "请输入知识点");
       setBusy(true);
       try {
+        // 先生成，交老师预览，确认无误再入库（不自动落库）
         const qs = await generateQuestions({ subject, knowledgePoint: point.trim(), type, difficulty: diff, count: n });
-        Alert.alert("出题成功", `已生成 ${qs.length} 道题入库`, [{ text: "好", onPress: goBank }]);
+        s.setDraftQuestions(qs);
+        router.push("/question-preview");
       } catch (e: any) {
         Alert.alert("失败", e?.message || "AI 生成失败");
       } finally {

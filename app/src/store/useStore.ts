@@ -88,6 +88,7 @@ export interface StoreState {
   knowledge: Knowledge[];
   exam: ExamState;
   submissions: SubmissionRecord[]; // 教师侧全量答卷（全班全卷，从 DB hydrate）
+  draftQuestions: Question[]; // AI 出题待预览（老师确认后才入库，不自动落库）
   myPracticeQuestions: Question[]; // 学生 AI 自练私有题（只本地、不落库、不进公共/老师库）
   practiceWrong: PracticeWrong[]; // 学生自主/AI 练习错题（本地记录，进错题本）
 
@@ -115,6 +116,7 @@ export interface StoreState {
   deletePaper: (id: string) => void;
   addQuestions: (questions: Question[]) => void;
   addMyPracticeQuestions: (questions: Question[]) => void; // 学生私有题：仅本地
+  setDraftQuestions: (questions: Question[]) => void; // AI 出题预览暂存
   logPracticeWrong: (w: PracticeWrong) => void; // 记录自主/AI 练习错题
   clearPracticeWrong: (key: string) => void;
   updateQuestion: (index: number, patch: Partial<Question>) => void;
@@ -199,6 +201,7 @@ export const useStore = create<StoreState>()(
       knowledge: seedKnowledge,
       exam: seedExam(),
       submissions: [],
+      draftQuestions: [],
       myPracticeQuestions: [],
       practiceWrong: [],
 
@@ -380,6 +383,7 @@ export const useStore = create<StoreState>()(
       // 学生 AI 私有题：只进本地 slice，绝不 persistQuestion（不入公共/老师库）
       addMyPracticeQuestions: (questions) =>
         set((s) => ({ myPracticeQuestions: [...questions, ...s.myPracticeQuestions] })),
+      setDraftQuestions: (draftQuestions) => set({ draftQuestions }),
       logPracticeWrong: (w) =>
         set((s) => ({
           practiceWrong: [w, ...s.practiceWrong.filter((x) => x.key !== w.key)].slice(0, 200),
