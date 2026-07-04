@@ -1,3 +1,14 @@
+import { Dimensions, Platform } from "react-native";
+
+// 屏幕越大，字号与间距整体放大（平板/pad 体验）。用最短边判断设备类型，
+// 不随旋转变化；Web(/app PWA) 保持手机尺寸不放大。
+const { width, height } = Dimensions.get("window");
+const shortest = Math.min(width, height);
+export const scale =
+  Platform.OS === "web" ? 1 : shortest >= 900 ? 1.5 : shortest >= 768 ? 1.35 : shortest >= 600 ? 1.2 : 1;
+export const isTablet = Platform.OS !== "web" && shortest >= 600;
+const f = (n: number) => Math.round(n * scale);
+
 // 品牌与设计 token（学而思式绿色、卡片、大触控）
 export const colors = {
   brand: "#0c8a5b",
@@ -17,14 +28,14 @@ export const colors = {
 };
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 };
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28 };
+export const space = { xs: f(4), sm: f(8), md: f(12), lg: f(16), xl: f(20), xxl: f(28) };
 export const font = {
-  h1: 24,
-  h2: 19,
-  h3: 16,
-  body: 15,
-  sub: 13,
-  cap: 12,
+  h1: f(24),
+  h2: f(19),
+  h3: f(16),
+  body: f(15),
+  sub: f(13),
+  cap: f(12),
 };
 export const shadow = {
   card: {

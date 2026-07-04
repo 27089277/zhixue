@@ -29,7 +29,7 @@ export function RichText({
 }) {
   return (
     <Text
-      style={[{ fontSize: font.body, color: colors.ink, lineHeight: 23 }, style]}
+      style={[{ fontSize: font.body, color: colors.ink, lineHeight: Math.round(font.body * 1.5) }, style]}
       numberOfLines={numberOfLines}
     >
       {htmlToText(html)}
