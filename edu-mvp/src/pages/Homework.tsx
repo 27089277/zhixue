@@ -92,6 +92,13 @@ export default function Homework() {
     if (!title.trim()) return notify("error", "请输入发布标题");
     if (!className) return notify("error", "当前没有可发布的授权班级");
     if (mode === "paper" && !paperId) return notify("error", "请选择要发布的试卷");
+    // 防重复发布：同一份整卷已发布到该班级则拦截
+    if (
+      mode === "paper" &&
+      s.assignments.some((a) => a.paperId === paperId && a.className === className)
+    ) {
+      return notify("error", `这份试卷已发布到 ${className}，请勿重复发布`);
+    }
     s.addAssignment({
       id: `hw-${Date.now()}`,
       title,

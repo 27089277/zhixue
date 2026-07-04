@@ -223,12 +223,25 @@ export const useStore = create<StoreState>()(
             }
           : prev;
         const allowed = roleProfiles[role].allowed;
+        // 登录后按本人手机号，从已加载的答卷回填「已答/已交」——
+        // 修复：bootstrap 常在登录前就跑了(phone为空)，导致本人在别的端交的卷这里仍显示未答。
+        const newPhone = phone || get().currentUserPhone;
+        const answers = { ...get().exam.answers };
+        const submitted = { ...get().exam.submitted };
+        get().submissions
+          .filter((sub) => sub.studentPhone && sub.studentPhone === newPhone)
+          .forEach((sub) => {
+            if (sub.answers) answers[sub.paperId] = sub.answers as any;
+            const { id: _i, paperId: _p, answers: _a, ...rest } = sub;
+            submitted[sub.paperId] = rest as any;
+          });
         set({
           authed: true,
           role,
-          currentUserPhone: phone || get().currentUserPhone,
+          currentUserPhone: newPhone,
           roleProfiles,
           section: allowed.includes("workspace") ? "workspace" : allowed[0],
+          exam: { ...get().exam, answers, submitted },
         });
       },
       logout: () => {
