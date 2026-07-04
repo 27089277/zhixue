@@ -60,6 +60,7 @@ export default function RootLayout() {
           <Stack.Screen name="bank-questions" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="videos" options={{ animation: "slide_from_right" }} />
           <Stack.Screen name="paper/[id]" options={{ animation: "slide_from_right" }} />
+          <Stack.Screen name="assignments" options={{ animation: "slide_from_right" }} />
         </Stack>
         </WebFrame>
       </SafeAreaProvider>

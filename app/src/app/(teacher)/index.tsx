@@ -16,11 +16,11 @@ export default function TeacherHome() {
   const teacherSubs = s.submissions.filter((x) => paperIds.has(x.paperId));
   const pending = teacherSubs.filter((x) => !x.gradedAt).length;
 
-  const kpis = [
-    { label: "待批改", value: pending },
-    { label: "进行中作业", value: s.assignments.length },
+  const kpis: { label: string; value: number; to?: string }[] = [
+    { label: "待批改", value: pending, to: "/(teacher)/grading" },
+    { label: "进行中作业", value: s.assignments.length, to: "/assignments" },
     { label: "我的学生", value: studentCount },
-    { label: "题库题量", value: s.questions.length },
+    { label: "题库题量", value: s.questions.length, to: "/(teacher)/bank" },
   ];
 
   return (
@@ -32,7 +32,7 @@ export default function TeacherHome() {
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
         {kpis.map((k) => (
-          <Card key={k.label} style={{ width: "47%" }}>
+          <Card key={k.label} style={{ width: "47%" }} onPress={k.to ? () => router.push(k.to as any) : undefined}>
             <Text style={{ fontSize: 26, fontWeight: "800", color: colors.brand }}>{k.value}</Text>
             <Text style={{ color: colors.sub, fontSize: font.sub, marginTop: 2 }}>{k.label}</Text>
           </Card>
